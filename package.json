@@ -1,0 +1,29 @@
+{
+  "name": "knky-test-framework",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.54.2",
+    "allure-playwright": "^3.3.3",
+    "playwright": "^1.54.2",
+    "xlsx": "^0.18.5"
+  },
+  "directories": {
+    "test": "tests"
+  },
+  "dependencies": {
+    "allure-js-commons": "^3.3.3",
+    "charenc": "^0.0.2",
+    "crypt": "^0.0.2",
+    "is-buffer": "^1.1.6",
+    "md5": "^2.3.0",
+    "playwright-core": "^1.54.2"
+  },
+  "description": ""
+}

@@ -1,0 +1,47 @@
+Test is failed !!! page.goto: Target page, context or browser has been closed
+Call log:
+  - navigating to "https://client-test.x3845w4itv8m.knky.co/fresh", waiting until "load"
+
+    at SignupPage.navigate (D:\Rohan\Playwright_Automation\knky-test-framework\pages\SignupPage.js:19:25)
+    at D:\Rohan\Playwright_Automation\knky-test-framework\tests\signup.spec.js:14:22 {
+  [Symbol(step)]: {
+    stepId: 'pw:api@8',
+    location: {
+      file: 'D:\\Rohan\\Playwright_Automation\\knky-test-framework\\pages\\SignupPage.js',
+      line: 19,
+      column: 25,
+      function: 'SignupPage.navigate'
+    },
+    category: 'pw:api',
+    title: 'Navigate to "/fresh"',
+    apiName: 'page.goto',
+    params: {
+      url: 'https://client-test.x3845w4itv8m.knky.co/fresh',
+      waitUntil: 'load',
+      timeout: 0
+    },
+    boxedStack: undefined,
+    steps: [],
+    attachmentIndices: [],
+    info: TestStepInfoImpl {
+      annotations: [],
+      _testInfo: [TestInfoImpl],
+      _stepId: 'pw:api@8',
+      skip: [Function (anonymous)]
+    },
+    complete: [Function: complete],
+    endWallTime: 1754663341924,
+    error: {
+      message: 'Error: page.goto: Target page, context or browser has been closed\n' +
+        'Call log:\n' +
+        '\x1B[2m  - navigating to "https://client-test.x3845w4itv8m.knky.co/fresh", waiting until "load"\x1B[22m\n',
+      stack: 'Error: page.goto: Target page, context or browser has been closed\n' +
+        'Call log:\n' +
+        '\x1B[2m  - navigating to "https://client-test.x3845w4itv8m.knky.co/fresh", waiting until "load"\x1B[22m\n' +
+        '\n' +
+        '    at SignupPage.navigate (D:\\Rohan\\Playwright_Automation\\knky-test-framework\\pages\\SignupPage.js:19:25)\n' +
+        '    at D:\\Rohan\\Playwright_Automation\\knky-test-framework\\tests\\signup.spec.js:14:22',
+      cause: undefined
+    }
+  }
+}

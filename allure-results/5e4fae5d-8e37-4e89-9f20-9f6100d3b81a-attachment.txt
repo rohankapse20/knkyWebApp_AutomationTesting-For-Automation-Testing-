@@ -1,0 +1,43 @@
+Test is failed !!! page.click: Test ended.
+Call log:
+  - waiting for locator('#age-wraning-close-button')
+
+    at SignupPage.clickAgeConfirmation (D:\Rohan\Playwright_Automation\knky-test-framework\pages\SignupPage.js:23:25)
+    at D:\Rohan\Playwright_Automation\knky-test-framework\tests\signup.spec.js:15:18 {
+  [Symbol(step)]: {
+    stepId: 'pw:api@11',
+    location: {
+      file: 'D:\\Rohan\\Playwright_Automation\\knky-test-framework\\pages\\SignupPage.js',
+      line: 23,
+      column: 25,
+      function: 'SignupPage.clickAgeConfirmation'
+    },
+    category: 'pw:api',
+    title: "Click locator('#age-wraning-close-button')",
+    apiName: 'page.click',
+    params: { selector: '#age-wraning-close-button', timeout: 0 },
+    boxedStack: undefined,
+    steps: [],
+    attachmentIndices: [],
+    info: TestStepInfoImpl {
+      annotations: [],
+      _testInfo: [TestInfoImpl],
+      _stepId: 'pw:api@11',
+      skip: [Function (anonymous)]
+    },
+    complete: [Function: complete],
+    endWallTime: 1754665524417,
+    error: {
+      message: 'Error: page.click: Test ended.\n' +
+        'Call log:\n' +
+        "\x1B[2m  - waiting for locator('#age-wraning-close-button')\x1B[22m\n",
+      stack: 'Error: page.click: Test ended.\n' +
+        'Call log:\n' +
+        "\x1B[2m  - waiting for locator('#age-wraning-close-button')\x1B[22m\n" +
+        '\n' +
+        '    at SignupPage.clickAgeConfirmation (D:\\Rohan\\Playwright_Automation\\knky-test-framework\\pages\\SignupPage.js:23:25)\n' +
+        '    at D:\\Rohan\\Playwright_Automation\\knky-test-framework\\tests\\signup.spec.js:15:18',
+      cause: undefined
+    }
+  }
+}

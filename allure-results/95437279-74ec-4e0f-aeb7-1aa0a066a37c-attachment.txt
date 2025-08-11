@@ -1,0 +1,47 @@
+Test is failed !!! page.waitForSelector: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator('//input[@type="email"]') to be visible
+    15 × locator resolved to 6 elements. Proceeding with the first one: <input min="0" value="" type="email" name="email" autocomplete="off" maxlength="Infinity" data-sentry-element="Field" placeholder="example@knky.com" data-sentry-source-file="index.tsx" class="w-100 bg-cream color-dark  rounded-3 border-0 p-2 fs-7"/>
+
+    at SignupPage.gotoClickSignUp (D:\Rohan\Playwright_Automation\knky-test-framework\pages\SignupPage.js:36:19)
+    at D:\Rohan\Playwright_Automation\knky-test-framework\tests\signup.spec.js:17:5 {
+  name: 'TimeoutError',
+  [Symbol(step)]: {
+    stepId: 'pw:api@14',
+    location: {
+      file: 'D:\\Rohan\\Playwright_Automation\\knky-test-framework\\pages\\SignupPage.js',
+      line: 36,
+      column: 19,
+      function: 'SignupPage.gotoClickSignUp'
+    },
+    category: 'pw:api',
+    title: `Wait for selector locator('//input[@type="email"]')`,
+    apiName: 'page.waitForSelector',
+    params: { selector: '//input[@type="email"]', timeout: 5000 },
+    boxedStack: undefined,
+    steps: [],
+    attachmentIndices: [],
+    info: TestStepInfoImpl {
+      annotations: [],
+      _testInfo: [TestInfoImpl],
+      _stepId: 'pw:api@14',
+      skip: [Function (anonymous)]
+    },
+    complete: [Function: complete],
+    endWallTime: 1754893342657,
+    error: {
+      message: 'TimeoutError: page.waitForSelector: Timeout 5000ms exceeded.\n' +
+        'Call log:\n' +
+        `\x1B[2m  - waiting for locator('//input[@type="email"]') to be visible\x1B[22m\n` +
+        '\x1B[2m    15 × locator resolved to 6 elements. Proceeding with the first one: <input min="0" value="" type="email" name="email" autocomplete="off" maxlength="Infinity" data-sentry-element="Field" placeholder="example@knky.com" data-sentry-source-file="index.tsx" class="w-100 bg-cream color-dark  rounded-3 border-0 p-2 fs-7"/>\x1B[22m\n',
+      stack: 'TimeoutError: page.waitForSelector: Timeout 5000ms exceeded.\n' +
+        'Call log:\n' +
+        `\x1B[2m  - waiting for locator('//input[@type="email"]') to be visible\x1B[22m\n` +
+        '\x1B[2m    15 × locator resolved to 6 elements. Proceeding with the first one: <input min="0" value="" type="email" name="email" autocomplete="off" maxlength="Infinity" data-sentry-element="Field" placeholder="example@knky.com" data-sentry-source-file="index.tsx" class="w-100 bg-cream color-dark  rounded-3 border-0 p-2 fs-7"/>\x1B[22m\n' +
+        '\n' +
+        '    at SignupPage.gotoClickSignUp (D:\\Rohan\\Playwright_Automation\\knky-test-framework\\pages\\SignupPage.js:36:19)\n' +
+        '    at D:\\Rohan\\Playwright_Automation\\knky-test-framework\\tests\\signup.spec.js:17:5',
+      cause: undefined
+    }
+  }
+}
