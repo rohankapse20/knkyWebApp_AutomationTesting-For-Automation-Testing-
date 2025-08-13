@@ -2,16 +2,23 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
-  timeout: 180000, // 3 minutes per test
-  retries: 1,
-  reporter: [['html'], ['list']],
+  timeout: 60000, // Test timeout per test
+  retries: 0,
+  reporter: [['list']],
+
   use: {
-    headless: false,            // Run with browser UI for debugging
-    viewport: { width: 1280, height: 720 },
+    headless: false,
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    viewport: null, // Let browser take full screen size
+    actionTimeout: 5000,
+    navigationTimeout: 30000,
     launchOptions: {
-      slowMo: 100,              // Slow down actions to see steps visually
+      args: [
+        '--start-fullscreen', // Works for Chromium (Chrome/Edge)
+        '--window-size=1920,1080', // Fallback for full screen
+      ],
+      slowMo: 0,
     },
   },
 });

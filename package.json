@@ -21,6 +21,7 @@
     "allure-js-commons": "^3.3.3",
     "charenc": "^0.0.2",
     "crypt": "^0.0.2",
+    "dotenv": "^17.2.1",
     "is-buffer": "^1.1.6",
     "md5": "^2.3.0",
     "playwright-core": "^1.54.2"

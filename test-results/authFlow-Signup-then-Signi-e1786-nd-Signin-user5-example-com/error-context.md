@@ -1,0 +1,271 @@
+# Page snapshot
+
+```yaml
+- banner:
+  - navigation "Main navigation":
+    - text: Test
+    - link "KNKY Logo":
+      - /url: /
+      - img "KNKY Logo"
+    - img "Search Logo"
+    - searchbox "Search..." [disabled]
+    - button "Sign In"
+    - button "Join Us"
+- link "Fresh":
+  - /url: /fresh
+- link "Trending":
+  - /url: /trending
+- link "Subscribed":
+  - /url: /subscribed
+- link "Following":
+  - /url: /following
+- link "Pay-To-View":
+  - /url: /premium
+- link "For you":
+  - /url: /interested
+- link "Live":
+  - /url: /live
+- link "Shop":
+  - /url: /shop
+- main:
+  - img "premium-icon"
+  - img "story-img"
+  - text: Zara Winget
+  - img "premium-icon"
+  - img "story-img"
+  - text: zoya khan
+  - link:
+    - /url: /creator/sweetmama
+  - link "Sweetmama":
+    - /url: /creator/sweetmama
+  - img "Creator Pro"
+  - img "Affiliated with Knky"
+  - link:
+    - /url: /creator/sweetmama
+  - text: 1 h
+  - img
+  - text: Prime
+  - button "Follow"
+  - text: "@laurenbell @angel_of_sweetness @kyla_is_on testing caption"
+  - img "prime-icon"
+  - button "Buy Prime"
+  - text: 1 image HD
+  - heading "Tagged in this post" [level=6]
+  - link "Angel Fernandes @angel_of_sweetness Creator Pro Prime 192 posts for Free":
+    - /url: /creator/angel_of_sweetness
+    - text: Angel Fernandes @angel_of_sweetness
+    - img "Creator Pro"
+    - img "Prime"
+    - text: 192 posts for Free
+  - button "Follow"
+  - link "Kyla Is On @kyla_is_on Creator Pro Prime 14 posts":
+    - /url: /creator/kyla_is_on
+    - text: Kyla Is On @kyla_is_on
+    - img "Creator Pro"
+    - img "Prime"
+    - text: 14 posts
+  - button "Follow"
+  - link "Laurenbellpjtee @laurenbell Creator Pro Prime 538 posts for Free":
+    - /url: /creator/laurenbell
+    - text: Laurenbellpjtee @laurenbell
+    - img "Creator Pro"
+    - img "Prime"
+    - text: 538 posts for Free
+  - button "Follow"
+  - separator
+  - text: Loved by 0 people 0 Comments
+  - link:
+    - /url: /creator/sweetmama
+  - link "Sweetmama":
+    - /url: /creator/sweetmama
+  - img "Creator Pro"
+  - img "Affiliated with Knky"
+  - link:
+    - /url: /creator/sweetmama
+  - text: 1 h
+  - img
+  - text: Prime
+  - button "Follow"
+  - text: Testing post caption @kyla_is_on @laurenbell @angel_of_sweetness
+  - img "prime-icon"
+  - button "Buy Prime"
+  - text: 1 image SD
+  - heading "Tagged in this post" [level=6]
+  - link "Angel Fernandes @angel_of_sweetness Creator Pro Prime 192 posts for Free":
+    - /url: /creator/angel_of_sweetness
+    - text: Angel Fernandes @angel_of_sweetness
+    - img "Creator Pro"
+    - img "Prime"
+    - text: 192 posts for Free
+  - button "Follow"
+  - link "Kyla Is On @kyla_is_on Creator Pro Prime 14 posts":
+    - /url: /creator/kyla_is_on
+    - text: Kyla Is On @kyla_is_on
+    - img "Creator Pro"
+    - img "Prime"
+    - text: 14 posts
+  - button "Follow"
+  - link "Laurenbellpjtee @laurenbell Creator Pro Prime 538 posts for Free":
+    - /url: /creator/laurenbell
+    - text: Laurenbellpjtee @laurenbell
+    - img "Creator Pro"
+    - img "Prime"
+    - text: 538 posts for Free
+  - button "Follow"
+  - separator
+  - text: Loved by 0 people 0 Comments
+  - link:
+    - /url: /creator/sweetmama
+  - link "Sweetmama":
+    - /url: /creator/sweetmama
+  - img "Creator Pro"
+  - img "Affiliated with Knky"
+  - link:
+    - /url: /creator/sweetmama
+  - text: 2 h
+  - img
+  - text: Prime
+  - button "Follow"
+  - text: "@kyla_is_on"
+  - img "prime-icon"
+  - button "Buy Prime"
+  - text: 1 image FHD
+  - heading "Tagged in this post" [level=6]
+  - link "Kyla Is On @kyla_is_on Creator Pro Prime 14 posts":
+    - /url: /creator/kyla_is_on
+    - text: Kyla Is On @kyla_is_on
+    - img "Creator Pro"
+    - img "Prime"
+    - text: 14 posts
+  - button "Follow"
+  - separator
+  - text: Loved by 0 people 0 Comments
+  - link:
+    - /url: /channel/stepahead
+  - text: check fess Channel
+  - link:
+    - /url: /creator/zara1
+  - text: 3 h
+  - img
+  - text: Subscription
+  - img
+  - text: A channel by
+  - link "@zara1 Creator Pro Prime":
+    - /url: /creator/zara1
+    - text: "@zara1"
+    - img "Creator Pro"
+    - img "Prime"
+  - button "Subscribe"
+  - button "Follow"
+  - img "subscription-icon"
+  - button "Subscribe to unlock"
+  - text: 1 image SD
+  - separator
+  - text: Loved by 0 people 0 Comments
+  - link:
+    - /url: /creator/sweetmama
+  - link "Sweetmama":
+    - /url: /creator/sweetmama
+  - img "Creator Pro"
+  - img "Affiliated with Knky"
+  - link:
+    - /url: /creator/sweetmama
+  - text: 3 h
+  - img
+  - text: Pay-To-View
+  - button "Follow"
+  - text: Testing queue
+  - img "premium-icon"
+  - button "Unlock for $5.00"
+  - text: 1 image 4K
+  - separator
+  - text: Loved by 0 people 0 Comments
+  - link:
+    - /url: /creator/zoya
+  - link "zoya khan":
+    - /url: /creator/zoya
+  - img "Creator Pro"
+  - img "Prime"
+  - link:
+    - /url: /creator/zoya
+  - text: 6 h
+  - img
+  - text: Public
+  - button "Follow"
+  - textbox [disabled]: ;
+  - text: Love Share Save
+  - img
+  - text: Services
+  - button "send-tip Send Tip":
+    - img "send-tip"
+    - text: Send Tip
+  - text: Loved by revaloren 0 comments
+  - link:
+    - /url: /creator/zoya
+  - link "zoya khan":
+    - /url: /creator/zoya
+  - img "Creator Pro"
+  - img "Prime"
+  - link:
+    - /url: /creator/zoya
+  - text: 6 h
+  - img
+  - text: Public
+  - button "Follow"
+  - text: SD Love Share Save
+  - img
+  - text: Services
+  - button "send-tip Send Tip":
+    - img "send-tip"
+    - text: Send Tip
+  - text: Be the first to love it 0 comments KNKY Match Match with people who love what you love!
+  - link "Get started":
+    - /url: ""
+  - link "Prime Unlock full access to every Creator and discover your favourites and explore their content before subscribing. Enjoy daily fresh content and new creators! More details":
+    - /url: /platform-plans
+  - link "Pro Creator Elevate your Creator journey with our premium tools, tailor-made to help you maximise revenue and expand your fan base on the KNKY platform. More details":
+    - /url: /platform-plans
+  - text: Chat
+  - img "Search Logo"
+  - searchbox "Search..." [disabled]
+  - separator
+  - img "image"
+  - paragraph: Chat directly with your favorite creators!
+  - link "About us":
+    - /url: https://lander.knky.co/
+  - link "T&Cs":
+    - /url: /articles/terms-of-service
+  - link "Help":
+    - /url: https://help.knky.co/
+  - link "Premium Plans":
+    - /url: /platform-plans
+  - paragraph: © 2025 KNKY® | Social Commerce Ltd | 71-75 Shelton Street - London - WC2H 9JQ
+- region "Notifications alt+T"
+- dialog "Change Email":
+  - img "close-modal"
+  - heading "Sign In" [level=1]
+  - text: Email or Username*
+  - textbox "knky@gmail.com": user5@example.com
+  - text: Password *
+  - textbox "Your password here"
+  - button
+  - text: Forgot Password ?
+  - button "Sign In" [disabled]
+  - text: Or sign in with I am new hereSign up
+- img "close-modal"
+- heading "Forgot Password?" [level=1]
+- textbox "Registered Email Address"
+- text: Please enter a valid email
+- button "Send Link" [disabled]
+- img "close-modal"
+- heading "File Supports" [level=1]
+- heading [level=6]
+- heading "Prime (Discovery)" [level=5]
+- text: "Get discovered by all KNKY Prime users! Feature your short-form content in our ‘Match’, ‘Featured’ and ‘For You’ feeds to boost your visibility and maximize sales. Supports: -Up to 20 media per post -FHD (1080p) media quality -Max. total video length 30min"
+- heading "Pay-To-View (Paid)" [level=5]
+- text: "Offer your long-form content and larger media collections on KNKY with Pay-To-View access for your fans! Supports: -Up to 60 media per post -QHD (1440p) or *4K (2160p) media quality -Max. total video length 125min *Publishing in 4K requires a ‘ProCreator’ Plan"
+- heading "Public (Free)" [level=5]
+- text: "Post public clips and teasers to showcase your content, boost fan engagement and drive conversions! Supports: -Up to 6 media per post -HD (720p) media quality -Max. total video length 2min Looking to create a new subscription? Create a Channel or a Collab Profile."
+- alert
+- iframe
+```
