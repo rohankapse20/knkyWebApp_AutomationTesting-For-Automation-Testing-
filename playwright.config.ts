@@ -4,7 +4,13 @@ export default defineConfig({
   testDir: './tests',
   timeout: 60000, // Test timeout per test
   retries: 0,
-  reporter: [['list']],
+
+  reporter: [
+    ['list'], // optional, your preferred console reporter
+    ['html', { outputFolder: 'test-results/html-report', open: 'never' }] // HTML report saved here
+  ],
+  
+   outputDir: 'test-results',  // Folder where results & traces go,
 
   use: {
     headless: false,
@@ -18,6 +24,7 @@ export default defineConfig({
         '--start-fullscreen', // Works for Chromium (Chrome/Edge)
         '--window-size=1920,1080', // Fallback for full screen
       ],
+
       slowMo: 0,
     },
   },

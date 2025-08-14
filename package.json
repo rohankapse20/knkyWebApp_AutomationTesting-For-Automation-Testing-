@@ -2,18 +2,10 @@
   "name": "knky-test-framework",
   "version": "1.0.0",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "description": "",
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "devDependencies": {
-    "@playwright/test": "^1.54.2",
-    "allure-playwright": "^3.3.3",
-    "playwright": "^1.54.2",
-    "xlsx": "^0.18.5"
-  },
   "directories": {
     "test": "tests"
   },
@@ -26,5 +18,17 @@
     "md5": "^2.3.0",
     "playwright-core": "^1.54.2"
   },
-  "description": ""
+  "devDependencies": {
+    "@playwright/test": "^1.54.2",
+    "allure-playwright": "^3.3.3",
+    "playwright": "^1.54.2",
+    "rimraf": "^6.0.1",
+    "xlsx": "^0.18.5"
+  },
+  "scripts": {
+  "clean": "rimraf test-results",
+  "test": "npm run clean && playwright test",
+  "show-report": "playwright show-report test-results/html-report"
+  }
 }
+

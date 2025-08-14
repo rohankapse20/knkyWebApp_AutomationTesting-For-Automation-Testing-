@@ -9,10 +9,6 @@ class SignupPage {
     this.ageConfirmationCheckbox = this.page.locator('[data-eid="SignUp/Age_confirmation"]');
     this.createAccountBtn = this.page.locator('[data-eid="SignUp/Create_account_button"]');
 
-    
-    // //  Define success message locator
-    // this.successMsg = this.page.locator('text="Account created"');
-
      }
 
   async goToSignup() {
@@ -31,15 +27,35 @@ class SignupPage {
     await this.ageConfirmationCheckbox.click();
   }
 
-  async submit() {
-    await this.createAccountBtn.click();
+async submit() {
+  await this.createAccountBtn.waitFor({ state: 'visible' });
+  await this.createAccountBtn.click();
+
+  // Wait for SweetAlert2 welcome message
+  const welcomeTitle = this.page.locator('#swal2-title');
+  await welcomeTitle.waitFor({ state: 'visible', timeout: 10000 });
+
+  // Assert the message text
+  const text = await welcomeTitle.textContent();
+  if (text?.trim() !== 'Welcome to Knky')
+  {
+    throw new Error(`Unexpected welcome message: "${text}"`);
   }
 
-  
-// async isAccountCreated() {
-//   await this.page.waitForLoadState('domcontentloaded');
-//   // return this.page.url().includes('/dashboard'); // replace with your actual success path
-//   }
+  console.log('Signup confirmation message verified:', text);
+
+  // Close the SweetAlert if needed (click OK button)
+  const swalOkBtn = this.page.locator('.swal2-confirm');
+
+  if (await swalOkBtn.isVisible())
+  {
+    await swalOkBtn.click();
+  }
+}
+  async verifySignupSuccess() {
+  const welcomeTitle = this.page.locator('#swal2-title');
+  await expect(welcomeTitle).toHaveText('Welcome to Knky');
+}
 }
 
 module.exports = { SignupPage };
