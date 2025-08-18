@@ -1,61 +1,48 @@
+const { expect } = require('@playwright/test');
+
 class SignupPage {
   constructor(page) {
-
     this.page = page;
-    this.openSignInBtn = this.page.locator('[data-eid="Home_WithoutLoggedIn/Signin_btn"]').first(); // Use first() to locate the element
-    this.signUpLink = this.page.locator('[data-eid="SignIn/Signup_link"]').first(); // Use first() to locate the element
-    this.emailInput = this.page.locator('[data-eid="SignUp/Email"]');
-    this.passwordInput = this.page.locator('[data-eid="SignUp/Password"]');
-    this.ageConfirmationCheckbox = this.page.locator('[data-eid="SignUp/Age_confirmation"]');
-    this.createAccountBtn = this.page.locator('[data-eid="SignUp/Create_account_button"]');
 
-     }
+    // Use unique and specific locator — not plain text
+    this.signupBtn = page.locator('[data-eid="Home_WithoutLoggedIn/Signin_btn"]');
+    this.signuplink = page.locator('[data-eid="SignIn/Signup_link"]');
 
-  async goToSignup() {
-    await this.page.waitForLoadState('networkidle');
-    await this.openSignInBtn.click();
-    await this.signUpLink.click();
+
+    this.emailField = page.locator('[data-eid="SignUp/Email"]');
+    this.passwordField = page.locator('[data-eid="SignUp/Password"]');
+    this.ageCheckbox = page.locator('[data-eid="SignUp/Age_confirmation"]');
+    this.submitBtn = page.locator('[data-eid="SignUp/Create_account_button"]');
   }
+
+async goToSignup() {
+  await this.signupBtn.waitFor({ state: 'visible', timeout: 5000 });
+  await this.signupBtn.click();
+
+  await this.signupBtn.waitFor({ state: 'visible', timeout: 5000 });
+  await this.signuplink.click();
+  
+  await this.emailField.waitFor({ state: 'visible', timeout: 5000 });
+}
+
 
   async fillSignupForm(email, password) {
-    await this.emailInput.fill(email);
-    await this.passwordInput.fill(password);
+    await this.emailField.fill(email);
+    await this.passwordField.fill(password);
+    console.log('Filled email and password.');
   }
 
-  async selectAgeConfm()
-  {
-    await this.ageConfirmationCheckbox.click();
+  async selectAgeConfm() {
+    await this.ageCheckbox.waitFor({ state: 'attached', timeout: 5000 });
+    await this.ageCheckbox.check();
+    console.log('Age confirmation checkbox selected.');
   }
 
-async submit() {
-  await this.createAccountBtn.waitFor({ state: 'visible' });
-  await this.createAccountBtn.click();
-
-  // Wait for SweetAlert2 welcome message
-  const welcomeTitle = this.page.locator('#swal2-title');
-  await welcomeTitle.waitFor({ state: 'visible', timeout: 10000 });
-
-  // Assert the message text
-  const text = await welcomeTitle.textContent();
-  if (text?.trim() !== 'Welcome to Knky')
-  {
-    throw new Error(`Unexpected welcome message: "${text}"`);
+  async submit() {
+    await this.submitBtn.waitFor({ state: 'visible', timeout: 5000 });
+    await this.submitBtn.click();
+    console.log('Submitted signup form.');
   }
-
-  console.log('Signup confirmation message verified:', text);
-
-  // Close the SweetAlert if needed (click OK button)
-  const swalOkBtn = this.page.locator('.swal2-confirm');
-
-  if (await swalOkBtn.isVisible())
-  {
-    await swalOkBtn.click();
-  }
-}
-  async verifySignupSuccess() {
-  const welcomeTitle = this.page.locator('#swal2-title');
-  await expect(welcomeTitle).toHaveText('Welcome to Knky');
-}
 }
 
 module.exports = { SignupPage };

@@ -13,17 +13,16 @@ test.describe('Signup Tests', () => {
       const signup = new SignupPage(page);
 
       await base.navigate();
-      await base.clickAgeConfirmation();
+      await base.clickAgeConfirmation(); // Waits for modal to disappear
 
-      await signup.goToSignup();
+      await signup.goToSignup(); // Now should work
       await signup.fillSignupForm(email, password);
       await signup.selectAgeConfm();
       await signup.submit();
 
-      // Verify welcome message after signup
+      // Validate welcome popup
       const welcomeTitle = page.locator('#swal2-title');
       await expect(welcomeTitle).toHaveText('Welcome to Knky');
-
       console.log(`Signup successful for user: ${email}`);
     });
   });

@@ -12,14 +12,16 @@ test.describe('Signin Tests', () => {
       const base = new BasePage(page, baseURL);
       const signin = new SigninPage(page);
 
+      // Navigate and handle age confirmation
       await base.navigate();
-      await base.clickAgeConfirmation();
+      await base.clickAgeConfirmation(); // waits for modal to disappear
 
+      // Perform sign-in flow
       await signin.goToSignin();
       await signin.fillSigninForm(email, password);
       await signin.signinSubmit();
 
-      // Verify "Complete Your Profile" button after signin
+      // Post-login validation
       const completeProfileBtn = page.locator('button.blinking-complete-profile');
       await expect(completeProfileBtn).toBeVisible();
       await expect(completeProfileBtn).toHaveText('Complete Your Profile');
