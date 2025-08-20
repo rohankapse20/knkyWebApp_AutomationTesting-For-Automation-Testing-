@@ -1,45 +1,48 @@
+const { expect } = require('@playwright/test');
+
 class SignupPage {
   constructor(page) {
-
     this.page = page;
-    this.openSignInBtn = this.page.locator('[data-eid="Home_WithoutLoggedIn/Signin_btn"]').first(); // Use first() to locate the element
-    this.signUpLink = this.page.locator('[data-eid="SignIn/Signup_link"]').first(); // Use first() to locate the element
-    this.emailInput = this.page.locator('[data-eid="SignUp/Email"]');
-    this.passwordInput = this.page.locator('[data-eid="SignUp/Password"]');
-    this.ageConfirmationCheckbox = this.page.locator('[data-eid="SignUp/Age_confirmation"]');
-    this.createAccountBtn = this.page.locator('[data-eid="SignUp/Create_account_button"]');
 
-    
-    // //  Define success message locator
-    // this.successMsg = this.page.locator('text="Account created"');
+    // Use unique and specific locator — not plain text
+    this.signupBtn = page.locator('[data-eid="Home_WithoutLoggedIn/Signin_btn"]');
+    this.signuplink = page.locator('[data-eid="SignIn/Signup_link"]');
 
-     }
 
-  async goToSignup() {
-    await this.page.waitForLoadState('networkidle');
-    await this.openSignInBtn.click();
-    await this.signUpLink.click();
+    this.emailField = page.locator('[data-eid="SignUp/Email"]');
+    this.passwordField = page.locator('[data-eid="SignUp/Password"]');
+    this.ageCheckbox = page.locator('[data-eid="SignUp/Age_confirmation"]');
+    this.submitBtn = page.locator('[data-eid="SignUp/Create_account_button"]');
   }
+
+async goToSignup() {
+  await this.signupBtn.waitFor({ state: 'visible', timeout: 5000 });
+  await this.signupBtn.click();
+
+  await this.signupBtn.waitFor({ state: 'visible', timeout: 5000 });
+  await this.signuplink.click();
+  
+  await this.emailField.waitFor({ state: 'visible', timeout: 5000 });
+}
+
 
   async fillSignupForm(email, password) {
-    await this.emailInput.fill(email);
-    await this.passwordInput.fill(password);
+    await this.emailField.fill(email);
+    await this.passwordField.fill(password);
+    console.log('Filled email and password.');
   }
 
-  async selectAgeConfm()
-  {
-    await this.ageConfirmationCheckbox.click();
+  async selectAgeConfm() {
+    await this.ageCheckbox.waitFor({ state: 'attached', timeout: 5000 });
+    await this.ageCheckbox.check();
+    console.log('Age confirmation checkbox selected.');
   }
 
   async submit() {
-    await this.createAccountBtn.click();
+    await this.submitBtn.waitFor({ state: 'visible', timeout: 5000 });
+    await this.submitBtn.click();
+    console.log('Submitted signup form.');
   }
-
-  
-// async isAccountCreated() {
-//   await this.page.waitForLoadState('domcontentloaded');
-//   // return this.page.url().includes('/dashboard'); // replace with your actual success path
-//   }
 }
 
 module.exports = { SignupPage };
