@@ -1,40 +1,28 @@
-const { expect } = require('@playwright/test');
-
 class BasePage {
-  constructor(page, baseURL) {
+  constructor(page) {
     this.page = page;
-    this.baseURL = baseURL;
-    this.ageConfirmButton = page.locator('[data-eid="Home_WithoutLoggedIn/AgeConfirm_btn"]').first();
+    this.ageConfirmButton = page.locator('#age-wraning-close-button');
+    this.signinButton = page.locator('[data-eid="Home_WithoutLoggedIn/Signin_btn"]');
   }
 
   async navigate() {
-    await this.page.goto(this.baseURL, { waitUntil: 'domcontentloaded' });
-    console.log(`Navigated to: ${this.baseURL}`);
-  }
+    await this.page.goto('https://client-test.x3845w4itv8m.knky.co/fresh', { waitUntil: 'domcontentloaded' });
+    console.log('Navigated to base URL');
 
-  async clickAgeConfirmation(retries = 3, timeout = 5000) {
-    let attempt = 0;
-    while (attempt < retries) {
-      try {
-        // Ensure the button is visible and clickable
-        await this.ageConfirmButton.waitFor({ state: 'visible', timeout });
-        await this.ageConfirmButton.click();
-        console.log('Clicked age confirmation button.');
-        return;
-      } 
-      catch (error)
-       {
-        attempt++;
-        console.log(`Attempt ${attempt} failed: ${error.message}`);
-      
-        if (attempt === retries)
-        {
-          throw new Error('Failed to click age confirmation button after multiple attempts.');
-        }
-        // Optionally, wait before retrying
-        await this.page.waitForTimeout(1000);
-      }
-    }
+try {
+  console.log('Waiting for age confirmation button...');
+  await this.ageConfirmButton.waitFor({ state: 'visible', timeout: 50000 });
+  await this.ageConfirmButton.click();
+  console.log('Clicked on age confirmation button.');
+}
+catch (err) 
+{
+  throw new Error('Age confirmation button did not appear within 50s..!!!');
+}
+
+    // Wait for sign-in button to be visible (page ready)
+    await this.signinButton.waitFor({ state: 'visible', timeout: 40000 });
+    console.log('Sign-in button is visible. Page fully loaded.');
   }
 }
 
