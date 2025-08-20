@@ -6,14 +6,19 @@ class SigninPage {
 
     this.openSignInBtn = page.locator('[data-eid="Home_WithoutLoggedIn/Signin_btn"]');
     this.emailInput = page.locator('[data-eid="SignIn/Email"]');
-    this.passwordInput = page.locator('[eid="SignIn/Password"]');
+    this.passwordInput = page.locator('[eid="SignIn/Password"]'); // 
     this.signInBtn = page.locator('[data-eid="SignIn/SignIn_btn"]');
+
+    this.ageConfirmBtn = page.locator('#age-wraning-close-button'); // Age confirmation modal button
+    this.modal = page.locator('#signUpModal'); // Not currently used, but fine to keep
   }
 
   async goToSignin() {
+
     await this.page.waitForLoadState('domcontentloaded');
     await this.openSignInBtn.waitFor({ state: 'visible', timeout: 5000 });
     await this.openSignInBtn.click();
+
     await this.emailInput.waitFor({ state: 'visible', timeout: 5000 });
     console.log('Navigated to Sign In form');
   }
@@ -32,4 +37,3 @@ class SigninPage {
 }
 
 module.exports = { SigninPage };
-
