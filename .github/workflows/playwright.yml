@@ -1,0 +1,49 @@
+name: Playwright Tests with Allure Reports
+
+on:
+  push:
+    branches:
+      - main
+      - rohan_AutomationTest
+  schedule:
+    # Run at 8 AM and 8 PM UTC daily
+    - cron: '0 8 * * *'   # 8:00 AM UTC
+    - cron: '0 20 * * *'  # 8:00 PM UTC
+  pull_request:
+    branches:
+      - main
+      - rohan_AutomationTest
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Playwright tests (clean + test)
+        run: npm test
+
+      - name: Generate Allure Report
+        run: npx allure generate --clean
+
+      - name: Upload Allure Report Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: allure-report
+          path: allure-report
+
+      - name: Upload Playwright Report Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: playwright-report
+          path: test-results/html-report
