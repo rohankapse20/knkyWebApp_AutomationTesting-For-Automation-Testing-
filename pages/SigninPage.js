@@ -6,7 +6,7 @@ class SigninPage {
 
     this.openSignInBtn = page.locator('[data-eid="Home_WithoutLoggedIn/Signin_btn"]');
     this.emailInput = page.locator('[data-eid="SignIn/Email"]');
-    this.passwordInput = page.locator('[eid="SignIn/Password"]'); // 
+    this.passwordInput = page.locator('[eid="SignIn/Password"]'); 
     this.signInBtn = page.locator('[data-eid="SignIn/SignIn_btn"]');
 
     this.ageConfirmBtn = page.locator('#age-wraning-close-button'); // Age confirmation modal button
