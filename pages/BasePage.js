@@ -7,7 +7,7 @@ class BasePage {
 
   async navigate() {
     await this.page.goto('https://client-test.x3845w4itv8m.knky.co/fresh', { waitUntil: 'domcontentloaded' });
-    console.log('Navigated to base URL');
+    console.log('Navigated to base URL'); 
 
 try {
   console.log('Waiting for age confirmation button...');
