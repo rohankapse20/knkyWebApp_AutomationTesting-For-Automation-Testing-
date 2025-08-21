@@ -1,5 +1,10 @@
 // playwright.config.ts
 import { defineConfig } from '@playwright/test';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load the .env file
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 export default defineConfig({
   testDir: './tests',
@@ -12,20 +17,21 @@ export default defineConfig({
   ],
 
   use: {
-    headless: false,                  // Run with visible browser
-    viewport: null,                   // Use full screen size of the browser window
-    screenshot: 'only-on-failure',    // Capture screenshots on failures
-    video: 'retain-on-failure',       // Keep videos for failed tests
+    headless: false,
+    viewport: null,
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
     actionTimeout: 5000,
     navigationTimeout: 30000,
 
+    // Use BASE_URL from .env.test
+    baseURL: process.env.BASE_URL,
+
     launchOptions: {
-      args: [
-        '--start-maximized',          // Start browser maximized
-      ],
-      slowMo: 100,                    // Slow down for visibility
+      args: ['--start-maximized'],
+      slowMo: 100,
     },
   },
 
-  workers: 1,                          // Run with 1 worker for debugging
+  workers: 1,
 });
