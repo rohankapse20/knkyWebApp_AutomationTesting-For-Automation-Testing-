@@ -15,8 +15,13 @@ test.use({
 test.describe('Signup Tests', () => {
   signupData.forEach(({ email, password }, index) => {
     test(`Signup user #${index + 1} - ${email}`, async ({ page }) => {
+      
+      // Created object of class 
       const base = new BasePage(page, baseURL);
       const signup = new SignupPage(page);
+
+      
+      // call the methods()
 
       await base.navigate();
       await signup.goToSignup();
@@ -26,6 +31,7 @@ test.describe('Signup Tests', () => {
 
       await expect(page.locator('#swal2-title')).toHaveText('Welcome to Knky');
       console.log(`Signup successful for user: ${email}`);
+
     });
   });
 });
