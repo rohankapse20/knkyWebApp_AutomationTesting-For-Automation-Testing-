@@ -6,7 +6,6 @@ on:
       - main
       - rohan_AutomationTest
   schedule:
-    # Run at 8 AM and 8 PM UTC daily
     - cron: '0 8 * * *'
     - cron: '0 20 * * *'
   pull_request:
@@ -35,18 +34,24 @@ jobs:
 
       - name: Run Playwright tests
         run: npm test
+        env:
+          CI: true
 
       - name: Generate Allure Report
-        run: npx allure generate --clean
+        run: npx allure generate test-results/allure-results --clean -o allure-report
 
       - name: Upload Allure Report Artifact
         uses: actions/upload-artifact@v4
         with:
           name: allure-report
           path: allure-report
-
-      - name: Upload Playwright Report Artifact
+          
+      - name: Upload Playwright HTML Report Artifact
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
           path: test-results/html-report
+
+      - name: List report files
+        run: ls -la test-results/html-report
+
