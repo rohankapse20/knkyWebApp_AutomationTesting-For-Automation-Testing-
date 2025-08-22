@@ -16,4 +16,16 @@ function getTestData(filePath, sheetName)
   });
 }
 
+const xlsx = require('xlsx');
+
+function readChatDataFromExcel(filePath, sheetName = 'chatTest_Data') {
+  const wb = xlsx.readFile(filePath);
+  const ws = wb.Sheets[sheetName];
+  const json = xlsx.utils.sheet_to_json(ws);
+  return json; // Array of test data
+}
+
+module.exports = { readChatDataFromExcel };
+
+
 module.exports = { getTestData };
