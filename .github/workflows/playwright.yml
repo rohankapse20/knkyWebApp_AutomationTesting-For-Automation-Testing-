@@ -32,6 +32,11 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
+      # Create .env file from GitHub Secrets
+      - name: Create .env file
+        run: |
+          echo "BASE_URL=${{ secrets.BASE_URL }}" >> .env
+
       - name: Run Playwright tests
         run: npm test
         env:
@@ -54,4 +59,3 @@ jobs:
 
       - name: List report files
         run: ls -la test-results/html-report
-
