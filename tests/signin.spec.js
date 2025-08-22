@@ -7,7 +7,7 @@ const { SigninPage } = require('../pages/SigninPage');
 const signinData = getTestData('./data/testData.xlsx', 'signin_data');
 
 test.use({
-  headless: false,
+  headless: true,
    viewport: { width: 1600, height: 900 },
 });
 

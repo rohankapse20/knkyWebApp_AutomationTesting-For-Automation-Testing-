@@ -10,7 +10,7 @@ const signupData = getTestData('./data/testData.xlsx', 'signup_data');
 // For full screen viewport
 test.use({
   viewport: { width: 1600, height: 900 },
-  headless: false, // Optional: visible browser
+  headless: true, // Optional: visible browser
 });
 
 test.describe('Signup Tests', () => {

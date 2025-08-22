@@ -6,6 +6,8 @@ import path from 'path';
 // Load the .env file
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
+const isCI = !!process.env.CI;
+
 export default defineConfig({
   testDir: './tests',
   timeout: 60000,
@@ -15,9 +17,8 @@ export default defineConfig({
     ['list'],
     ['html', { outputFolder: 'html-report', open: 'never' }],
   ],
-
-  use: {
-    headless: false,
+use: {
+    headless: true,
     viewport: null,
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
