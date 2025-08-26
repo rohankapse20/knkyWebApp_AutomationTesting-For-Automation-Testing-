@@ -18,13 +18,22 @@ class BasePage {
       throw new Error('BASE_URL is not defined. Check your .env file.');
     }
 
-    try {
-      console.log('Navigating to:', this.baseURL);
-      await this.page.goto(this.baseURL, { waitUntil: 'domcontentloaded' });
-      console.log('Navigated to base URL');
-    } catch (err) {
-      throw new Error(`Navigation failed: ${err.message}`);
-    }
+ try {
+  console.log('Navigating to:', this.baseURL);
+  await this.page.goto(this.baseURL, { waitUntil: 'domcontentloaded' });
+  console.log('Navigated to base URL');
+
+  // Check if "502 Bad Gateway" error page is shown
+  const error502 = await this.page.locator("//h1[contains(text(), '502 Bad Gateway')]").count();
+  if (error502 > 0) {
+    console.error('Site is currently down with 502 Bad Gateway error. Stopping the test.');
+    throw new Error('502 Bad Gateway error detected. Aborting test.');
+  }
+
+} catch (err) {
+  console.error('Navigation failed or 502 error detected:', err.message);
+  throw new Error(`Navigation failed: ${err.message}`);
+}
 
     try {
       console.log('Waiting for age confirmation button...');

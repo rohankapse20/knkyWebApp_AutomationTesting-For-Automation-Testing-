@@ -67,6 +67,21 @@ async function uploadFile(page, selector, filePath) {
   console.log(`Uploaded file: ${filePath} to input ${selector}`);
 }
 
+const { faker } = require('@faker-js/faker');
+
+/**
+ * Generates a unique two-line message.
+ * formatted message with two lines.
+ */
+function generateRandomMessage() {
+  const line1 = faker.hacker.phrase();
+  const line2 = faker.company.catchPhrase();
+  return `${line1}\n${line2}`;
+}
+
+
+
+
 //  Export all helpers
 module.exports = {
   fillInput,
@@ -75,6 +90,7 @@ module.exports = {
   takeScreenshot,
   selectDropdown,
   uploadFile,
+  generateRandomMessage
 
 //  Call the function with define the helper then used the fun() by passing parameters
 
