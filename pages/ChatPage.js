@@ -26,14 +26,15 @@ class ChatPage {
 
   async navigateToChat() {
     try {
-      if (await this.testVersAccept.isVisible({ timeout: 5000 })) {
+      if (await this.testVersAccept.isVisible({ timeout: 20000 })) {
         await this.testVersAccept.click();
         console.log('Accepted test version');
       }
 
-      await this.chatoption.waitFor({ state: 'visible', timeout: 10000 });
+      await this.chatoption.waitFor({ state: 'visible', timeout: 20000 });
       await this.chatoption.click();
       console.log('Clicked Chat icon');
+       await this.page.waitForTimeout(50000);
 
           } catch (error) {
       console.error('Error navigating to Chat:', error.message);
@@ -41,6 +42,67 @@ class ChatPage {
       throw error;
     }
   }
+
+async chatwithCreator() {
+  try {
+    const emptyMessage = this.page.locator("text='Chat list is empty :('");
+    const isEmptyVisible = await emptyMessage.isVisible();
+
+    if (isEmptyVisible) {
+      console.log("Chat list is empty. Initiating chat with creator...");
+
+      // Optionally click on the wrapper or some parent to activate search
+      const searchWrapper = this.page.locator('form'); // Adjust if needed
+      await searchWrapper.click({ force: true });
+
+      // Search input field
+      const searchInput = this.page.locator('form input[type="search"][placeholder="Search..."]');
+
+      // Wait for input to be visible
+      await searchInput.waitFor({ state: 'visible', timeout: 10000 });
+
+      // Wait until input is not disabled and not blocked
+      await this.page.waitForFunction(
+        (el) => el && !el.disabled && el.offsetParent !== null,
+        await searchInput.elementHandle(),
+        { timeout: 10000 }
+      );
+
+      // Extra measure: click via JavaScript if normal click fails
+      try {
+        await searchInput.click({ timeout: 5000 });
+      } catch {
+        console.warn("Normal click failed, using JS click.");
+        await this.page.evaluate((el) => el.click(), await searchInput.elementHandle());
+      }
+
+      // Clear and fill the input
+      await searchInput.fill('');
+      console.log("Cleared search input field");
+
+      await searchInput.fill('PlayfulMistress');
+      console.log("Entered 'PlayfulMistress' in search input");
+
+      // Wait and select the creator from results
+      const creatorOption = this.page.locator("//div[contains(text(), 'PlayfulMistress')]");
+      await creatorOption.waitFor({ state: 'visible', timeout: 10000 });
+
+      await creatorOption.click();
+      console.log("Selected 'PlayfulMistress' from search results");
+
+      await this.page.waitForTimeout(2000); // optional wait for UI to load
+    } else {
+      console.log("Chat list already has messages. Skipping creator search.");
+    }
+  } catch (error) {
+    console.error('Error in chatwithCreator():', error.message);
+
+    // Screenshot for debugging
+    await this.page.screenshot({ path: 'error_chatwithCreator.png' });
+    throw error;
+  }
+}
+
 
   async getStartedMassOption()
   {
@@ -103,11 +165,13 @@ async selectSendDetails() {
     console.log('Checked followers checkbox');
 
     //For Active Subscribers Select
-    // const activeSubscribers = page.locator("//form[@id='subscriptionForm']//input[@id='subscribers' and contains(@class, 'form-check-input') and @type='checkbox']");
-    // await expect(this.activeSubscribers).toBeEnabled();
-    // await activeSubscribers.check();
-    // console.log('Checked active subscribers');  
-    
+
+    const activeSubscribersCheckbox = this.page.locator("//input[@type='checkbox' and @id='subscribers']");
+    await expect(activeSubscribersCheckbox).toBeEnabled();
+    await activeSubscribersCheckbox.check();
+    console.log('Checked active subscribers');
+
+
     // Scroll the Send button into view (or page down if needed)
     await this.sendButton.scrollIntoViewIfNeeded();
     console.log('Scrolled to Send button');
