@@ -56,7 +56,7 @@ async chatwithCreator() {
       await searchWrapper.click({ force: true });
 
       // Search input field
-      const searchInput = this.page.locator('form input[type="search"][placeholder="Search..."]');
+      const searchInput = this.page.locator('xpath=/html/body/div[1]/div/div[1]/div/div[1]/div/div[1]/div[2]/div/form/input');
 
       // Wait for input to be visible
       await searchInput.waitFor({ state: 'visible', timeout: 10000 });
