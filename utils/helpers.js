@@ -43,11 +43,21 @@ async function highlightElement(page, selector) {
 /**
  * Take a screenshot with a timestamp
  */
+const fs = require('fs');
+const path = require('path');
+
 async function takeScreenshot(page, name = 'screenshot') {
+  const dir = 'screenshots';
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir);
+  }
+
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  await page.screenshot({ path: `screenshots/${name}-${timestamp}.png`, fullPage: true });
-  console.log(`Screenshot saved: screenshots/${name}-${timestamp}.png`);
+  const filePath = path.join(dir, `${name}-${timestamp}.png`);
+  await page.screenshot({ path: filePath, fullPage: true });
+  console.log(`Screenshot saved: ${filePath}`);
 }
+
 
 /**
  * Select dropdown option by value, label, or index
@@ -81,7 +91,6 @@ function generateRandomMessage() {
 
 
 // For chat loading wait
-
 async function waitForChatToLoad(page, expectedName) {
   const chatHeader = page.locator('.chat-header span'); // adjust if needed
   const chatMessages = page.locator('.chat-messages'); // or another solid selector

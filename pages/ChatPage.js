@@ -111,60 +111,87 @@ async waitForChatToLoad(expectedName) {
       return false;
     }
   }
-async chatWithCreator() {
-  const creatorName = 'PlayfulMistress';
-  const searchInput = this.page.locator('#chat-search-box input[type="search"]');
 
-  // Helper: checks if any suggestion exists
-  const suggestionListLocator = this.page.locator('.chatList_chatItem__S5T5x .profile-last-message');
+async chatWithCreator(retryCount = 0) {
+  const creatorName = 'PlayfulMistress';
+  const MAX_RETRIES = 1;
+
+  const searchInput = this.page.locator('#chat-search-box input[type="search"]');
+  const emptyChatText = this.page.locator('text="Chat list is empty :("');
+
+  const suggestionOption = this.page.locator(`//span[@class="profile-last-message" and normalize-space(text())="${creatorName}"]`);
+  const fallbackChatItem = this.page.locator(`//div[contains(@class,"chatList_chatItem__S5T5x")]//span[@class="profile-last-message" and normalize-space(text())="${creatorName}"]`);
 
   try {
-    // Step 1: Search Creator Name
-    await searchInput.waitFor({ state: 'visible', timeout: 10000 });
-    await searchInput.click({ force: true });
-    await searchInput.fill('');
-    await this.page.waitForTimeout(300);
-    await searchInput.fill(creatorName);
-    console.log(`Typed creator name: ${creatorName}`);
-    await this.page.waitForTimeout(1500);
+    console.log(`[${retryCount}] Starting chatWithCreator`);
+    await this.page.waitForTimeout(1000); // Ensure chat panel loads
 
-    // Step 2: Check if suggestion list is available
-    const suggestionsCount = await suggestionListLocator.count();
-    console.log(`Suggestions found: ${suggestionsCount}`);
+    const isChatEmpty = await emptyChatText.isVisible({ timeout: 3000 });
+    console.log(`[${retryCount}] Is chat list empty? ${isChatEmpty}`);
 
-    if (suggestionsCount > 0) {
-      // Step 3A: Click the correct one from suggestions
-      for (let i = 0; i < suggestionsCount; i++) {
-        const suggestionText = await suggestionListLocator.nth(i).innerText();
-        if (suggestionText.trim() === creatorName) {
-          console.log(`Clicking on suggestion: ${suggestionText}`);
-          await suggestionListLocator.nth(i).click();
-          break;
-        }
+    if (isChatEmpty) {
+      // When chat list is empty → Use search box and suggestions
+      console.log(`[${retryCount}] Chat is empty. Searching for ${creatorName}...`);
+      await searchInput.waitFor({ state: 'visible', timeout: 5000 });
+      await searchInput.click({ force: true });
+      await searchInput.fill('');
+      await this.page.waitForTimeout(300);
+      await searchInput.fill(creatorName);
+      await this.page.waitForTimeout(1500);
+
+      const isSuggestionVisible = await suggestionOption.isVisible({ timeout: 5000 }).catch(() => false);
+      if (isSuggestionVisible) {
+        console.log(`[${retryCount}] Suggestion found. Clicking...`);
+        await suggestionOption.click({ force: true });
+      } else {
+        throw new Error(`[${retryCount}] No suggestion visible for ${creatorName}`);
       }
     } else {
-      // Step 3B: Fallback - use outer HTML div structure directly
-      console.log('No suggestions. Trying fallback selector...');
-      const fallbackChat = this.page.locator(
-        '//div[contains(@class, "chatList_chatItem__S5T5x")]//span[@class="profile-last-message" and normalize-space(text())="PlayfulMistress"]'
-      );
+      // Otherwise chat list is NOT empty → Try finding and clicking directly
+      console.log(`[${retryCount}] Chat is not empty. Using fallback selection.`);
 
-      await fallbackChat.first().click({ force: true });
+      let isVisible = await fallbackChatItem.first().isVisible().catch(() => false);
+
+      // If not visible, try to scroll to load more chats
+      if (!isVisible) {
+        console.log(`[${retryCount}] Creator not immediately visible. Scrolling to find...`);
+        for (let scrollTry = 0; scrollTry < 10; scrollTry++) {
+          await this.page.mouse.wheel(0, 300); // Scroll down
+          await this.page.waitForTimeout(300);
+          isVisible = await fallbackChatItem.first().isVisible().catch(() => false);
+          if (isVisible) break;
+        }
+      }
+
+      if (isVisible) {
+        console.log(`[${retryCount}] Found creator chat. Clicking...`);
+        await fallbackChatItem.first().click({ force: true });
+      } else {
+        throw new Error(`[${retryCount}] Could not find ${creatorName} in fallback chat list after scrolling`);
+      }
     }
 
-    // Step 4: Confirm Chat Loaded
+    // Step 3: Wait for chat to load after click
     const chatLoaded = await this.waitForChatToLoad(creatorName);
     if (!chatLoaded) {
-      console.warn('Chat did not load properly, refreshing the page and retrying...');
-      await this.page.reload();
-      await this.page.waitForTimeout(4000);
-
-      // Retry all steps
-      return await this.chatWithCreator(); // Recursive retry once
+      if (retryCount < MAX_RETRIES) {
+        console.warn(`[${retryCount}] Chat did not load. Retrying after reload...`);
+        await this.page.reload();
+        await this.page.waitForTimeout(4000);
+        return await this.chatWithCreator(retryCount + 1);
+      } else {
+        const screenshotPath = path.resolve(`screenshots/chat-failure-${Date.now()}.png`);
+        await this.page.screenshot({ path: screenshotPath, fullPage: true });
+        throw new Error(`Chat did not load after retry. Screenshot saved at: ${screenshotPath}`);
+      }
     }
 
-  } catch (error) {
-    throw new Error(`Failed during chat interaction with ${creatorName}: ${error.message}`);
+    console.log(`[${retryCount}] Chat successfully loaded with ${creatorName}`);
+
+  } catch (err) {
+    const screenshotPath = path.resolve(`screenshots/chat-error-${Date.now()}.png`);
+    await this.page.screenshot({ path: screenshotPath, fullPage: true });
+    throw new Error(`chatWithCreator failed for ${creatorName}: ${err.message}. Screenshot saved: ${screenshotPath}`);
   }
 }
 
@@ -274,7 +301,6 @@ async submitForm() {
     throw error;
   }
 }
-
 
 
 async waitForSuccessPopup() {
