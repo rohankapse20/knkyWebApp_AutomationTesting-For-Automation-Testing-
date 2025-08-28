@@ -24,84 +24,150 @@ class ChatPage {
     this.successCloseButton = this.page.locator("//button[contains(@class, 'swal2-confirm') and normalize-space(text())='Close']");
   }
 
-  async navigateToChat() {
-    try {
-      if (await this.testVersAccept.isVisible({ timeout: 20000 })) {
-        await this.testVersAccept.click();
-        console.log('Accepted test version');
-      }
-
-      await this.chatoption.waitFor({ state: 'visible', timeout: 20000 });
-      await this.chatoption.click();
-      console.log('Clicked Chat icon');
-       await this.page.waitForTimeout(50000);
-
-          } catch (error) {
-      console.error('Error navigating to Chat:', error.message);
-      await this.page.screenshot({ path: `error_navigate_chat.png` });
-      throw error;
-    }
-  }
-
-async chatwithCreator() {
+async navigateToChat() {
   try {
-    const emptyMessage = this.page.locator("text='Chat list is empty :('");
-    const isEmptyVisible = await emptyMessage.isVisible();
-
-    if (isEmptyVisible) {
-      console.log("Chat list is empty. Initiating chat with creator...");
-
-      // Optionally click on the wrapper or some parent to activate search
-      const searchWrapper = this.page.locator('form'); // Adjust if needed
-      await searchWrapper.click({ force: true });
-
-      // Search input field
-      const searchInput = this.page.locator('xpath=/html/body/div[1]/div/div[1]/div/div[1]/div/div[1]/div[2]/div/form/input');
-
-      // Wait for input to be visible
-      await searchInput.waitFor({ state: 'visible', timeout: 10000 });
-
-      // Wait until input is not disabled and not blocked
-      await this.page.waitForFunction(
-        (el) => el && !el.disabled && el.offsetParent !== null,
-        await searchInput.elementHandle(),
-        { timeout: 10000 }
-      );
-
-      // Extra measure: click via JavaScript if normal click fails
-      try {
-        await searchInput.click({ timeout: 5000 });
-      } catch {
-        console.warn("Normal click failed, using JS click.");
-        await this.page.evaluate((el) => el.click(), await searchInput.elementHandle());
-      }
-
-      // Clear and fill the input
-      await searchInput.fill('');
-      console.log("Cleared search input field");
-
-      await searchInput.fill('PlayfulMistress');
-      console.log("Entered 'PlayfulMistress' in search input");
-
-      // Wait and select the creator from results
-      const creatorOption = this.page.locator("//div[contains(text(), 'PlayfulMistress')]");
-      await creatorOption.waitFor({ state: 'visible', timeout: 10000 });
-
-      await creatorOption.click();
-      console.log("Selected 'PlayfulMistress' from search results");
-
-      await this.page.waitForTimeout(2000); // optional wait for UI to load
-    } else {
-      console.log("Chat list already has messages. Skipping creator search.");
+    if (await this.testVersAccept.isVisible({ timeout: 20000 })) {
+      await this.testVersAccept.click();
+      console.log('Accepted test version');
     }
-  } catch (error) {
-    console.error('Error in chatwithCreator():', error.message);
 
-    // Screenshot for debugging
-    await this.page.screenshot({ path: 'error_chatwithCreator.png' });
+    await this.chatoption.waitFor({ state: 'visible', timeout: 20000 });
+    await this.chatoption.click();
+    console.log('Clicked Chat icon');
+
+    const chatSearchInput = this.page.locator('#chat-search-box input[type="search"]');
+
+    try {
+      await chatSearchInput.waitFor({ state: 'visible', timeout: 10000 });
+    } catch {
+      console.warn('Chat input not found on first click, retrying...');
+      await this.chatoption.click();
+      await chatSearchInput.waitFor({ state: 'visible', timeout: 10000 });
+    }
+
+    console.log('Chat panel loaded successfully');
+  } catch (error) {
+    console.error('Error navigating to Chat:', error.message);
+    await this.page.screenshot({ path: `error_navigate_chat.png` });
     throw error;
   }
 }
+
+// async chatWithCreator() {
+
+//   const creatorName = 'PlayfulMistress';
+//   const searchInput = this.page.locator('#chat-search-box input[type="search"]');
+
+//   try {
+
+//     await searchInput.waitFor({ state: 'visible', timeout: 10000 });
+//     await searchInput.click({ force: true });
+//     await searchInput.fill('');
+//     await this.page.waitForTimeout(300); // debounce
+//     await searchInput.fill(creatorName);
+//     console.log(`Typed creator name: ${creatorName}`);
+
+//     // Wait for the suggestion list to appear and find an option that includes the name
+//     const suggestions = this.page.locator('//div[contains(@class,"chat-item") and .//span[contains(text(),"' + creatorName + '")]]');
+
+//     await suggestions.first().waitFor({ state: 'visible', timeout: 15000 });
+//     console.log('Suggestion is visible, attempting to click');
+
+//     await suggestions.first().click();
+//     console.log(`Clicked on creator: ${creatorName}`);
+
+//     await this.page.waitForTimeout(2000);
+//   } 
+//   catch (error) {
+//     console.error(`Failed to select creator ${creatorName}:`, error.message);
+
+//     const allSuggestions = await this.page.locator('//div[contains(@class,"chat-item")]').allTextContents();
+//     console.log('All visible suggestions:', allSuggestions);
+
+//     await this.page.screenshot({ path: 'error_chat_with_creator.png' });
+//     throw error;
+//   }
+// }
+
+async waitForChatToLoad(expectedName) {
+    const chatHeader = this.page.locator('.chat-header span'); // adjust this if selector is different
+    const chatMessages = this.page.locator('.chat-messages');  // adjust this too if needed
+
+    try {
+      await chatHeader.waitFor({ state: 'visible', timeout: 10000 });
+      const headerText = await chatHeader.textContent();
+      console.log('Chat header text:', headerText);
+
+      if (!headerText?.includes(expectedName)) {
+        console.warn(`Chat opened, but expected creator name not found. Header: ${headerText}`);
+        return false;
+      }
+
+      await chatMessages.waitFor({ state: 'visible', timeout: 10000 });
+      console.log('Chat messages are visible.');
+      return true;
+    } catch (err) {
+      console.warn('Chat load wait failed:', err.message);
+      return false;
+    }
+  }
+async chatWithCreator() {
+  const creatorName = 'PlayfulMistress';
+  const searchInput = this.page.locator('#chat-search-box input[type="search"]');
+
+  // Helper: checks if any suggestion exists
+  const suggestionListLocator = this.page.locator('.chatList_chatItem__S5T5x .profile-last-message');
+
+  try {
+    // Step 1: Search Creator Name
+    await searchInput.waitFor({ state: 'visible', timeout: 10000 });
+    await searchInput.click({ force: true });
+    await searchInput.fill('');
+    await this.page.waitForTimeout(300);
+    await searchInput.fill(creatorName);
+    console.log(`Typed creator name: ${creatorName}`);
+    await this.page.waitForTimeout(1500);
+
+    // Step 2: Check if suggestion list is available
+    const suggestionsCount = await suggestionListLocator.count();
+    console.log(`Suggestions found: ${suggestionsCount}`);
+
+    if (suggestionsCount > 0) {
+      // Step 3A: Click the correct one from suggestions
+      for (let i = 0; i < suggestionsCount; i++) {
+        const suggestionText = await suggestionListLocator.nth(i).innerText();
+        if (suggestionText.trim() === creatorName) {
+          console.log(`Clicking on suggestion: ${suggestionText}`);
+          await suggestionListLocator.nth(i).click();
+          break;
+        }
+      }
+    } else {
+      // Step 3B: Fallback - use outer HTML div structure directly
+      console.log('No suggestions. Trying fallback selector...');
+      const fallbackChat = this.page.locator(
+        '//div[contains(@class, "chatList_chatItem__S5T5x")]//span[@class="profile-last-message" and normalize-space(text())="PlayfulMistress"]'
+      );
+
+      await fallbackChat.first().click({ force: true });
+    }
+
+    // Step 4: Confirm Chat Loaded
+    const chatLoaded = await this.waitForChatToLoad(creatorName);
+    if (!chatLoaded) {
+      console.warn('Chat did not load properly, refreshing the page and retrying...');
+      await this.page.reload();
+      await this.page.waitForTimeout(4000);
+
+      // Retry all steps
+      return await this.chatWithCreator(); // Recursive retry once
+    }
+
+  } catch (error) {
+    throw new Error(`Failed during chat interaction with ${creatorName}: ${error.message}`);
+  }
+}
+
 
 
   async getStartedMassOption()

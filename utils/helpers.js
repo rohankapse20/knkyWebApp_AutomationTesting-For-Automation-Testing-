@@ -80,6 +80,31 @@ function generateRandomMessage() {
 }
 
 
+// For chat loading wait
+
+async function waitForChatToLoad(page, expectedName) {
+  const chatHeader = page.locator('.chat-header span'); // adjust if needed
+  const chatMessages = page.locator('.chat-messages'); // or another solid selector
+  try {
+    await chatHeader.waitFor({ state: 'visible', timeout: 10000 });
+    const headerText = await chatHeader.textContent();
+    console.log('Chat header text:', headerText);
+
+    if (!headerText?.includes(expectedName)) {
+      console.warn(`Chat opened, but expected creator name not found. Header: ${headerText}`);
+      return false;
+    }
+
+    await chatMessages.waitFor({ state: 'visible', timeout: 10000 });
+    console.log('Chat loaded successfully with visible messages.');
+    return true;
+  } catch (err) {
+    console.warn('Chat load wait failed:', err.message);
+    return false;
+  }
+}
+
+
 
 
 //  Export all helpers
@@ -90,7 +115,8 @@ module.exports = {
   takeScreenshot,
   selectDropdown,
   uploadFile,
-  generateRandomMessage
+  generateRandomMessage,
+  waitForChatToLoad
 
 //  Call the function with define the helper then used the fun() by passing parameters
 

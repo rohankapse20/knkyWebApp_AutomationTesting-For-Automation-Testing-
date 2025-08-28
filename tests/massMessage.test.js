@@ -133,7 +133,7 @@ fanData.forEach((fan, index) => {test(`Verify message visible to fan #${index + 
     await chat.navigateToChat();
     console.log('Navigated to Chat for fan.');
 
-    await chat.chatwithCreator();
+    await chat.chatWithCreator();
     console.log('Opened chat with creator.');
     
 
