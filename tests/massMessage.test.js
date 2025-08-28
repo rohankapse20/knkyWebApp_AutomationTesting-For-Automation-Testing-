@@ -15,7 +15,7 @@ test.setTimeout(60000); // set timeout for all tests in this file
 
 chatData.forEach((dataRow, index) => {
 
-  test.skip(`'Mass message test - creator sends message' #${index + 1} - ${dataRow.CreatorEmail}`, async ({ page }) => {
+  test(`'Mass message test - creator sends message' #${index + 1} - ${dataRow.CreatorEmail}`, async ({ page }) => {
     const base = new BasePage(page);
     const signin = new SigninPage(page);
     const chat = new ChatPage(page);
@@ -49,7 +49,6 @@ chatData.forEach((dataRow, index) => {
 
     try {
       await chat.navigateToChat();
-      await chat.chatwithCreator();
       await chat.getStartedMassOption();
       console.log('Navigated to Chat');
       console.log('Chat interface loaded');

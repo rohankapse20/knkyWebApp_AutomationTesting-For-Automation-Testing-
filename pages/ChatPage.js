@@ -53,42 +53,6 @@ async navigateToChat() {
   }
 }
 
-// async chatWithCreator() {
-
-//   const creatorName = 'PlayfulMistress';
-//   const searchInput = this.page.locator('#chat-search-box input[type="search"]');
-
-//   try {
-
-//     await searchInput.waitFor({ state: 'visible', timeout: 10000 });
-//     await searchInput.click({ force: true });
-//     await searchInput.fill('');
-//     await this.page.waitForTimeout(300); // debounce
-//     await searchInput.fill(creatorName);
-//     console.log(`Typed creator name: ${creatorName}`);
-
-//     // Wait for the suggestion list to appear and find an option that includes the name
-//     const suggestions = this.page.locator('//div[contains(@class,"chat-item") and .//span[contains(text(),"' + creatorName + '")]]');
-
-//     await suggestions.first().waitFor({ state: 'visible', timeout: 15000 });
-//     console.log('Suggestion is visible, attempting to click');
-
-//     await suggestions.first().click();
-//     console.log(`Clicked on creator: ${creatorName}`);
-
-//     await this.page.waitForTimeout(2000);
-//   } 
-//   catch (error) {
-//     console.error(`Failed to select creator ${creatorName}:`, error.message);
-
-//     const allSuggestions = await this.page.locator('//div[contains(@class,"chat-item")]').allTextContents();
-//     console.log('All visible suggestions:', allSuggestions);
-
-//     await this.page.screenshot({ path: 'error_chat_with_creator.png' });
-//     throw error;
-//   }
-// }
-
 async waitForChatToLoad(expectedName) {
     const chatHeader = this.page.locator('.chat-header span'); // adjust this if selector is different
     const chatMessages = this.page.locator('.chat-messages');  // adjust this too if needed
@@ -143,6 +107,7 @@ async chatWithCreator(retryCount = 0) {
       if (isSuggestionVisible) {
         console.log(`[${retryCount}] Suggestion found. Clicking...`);
         await suggestionOption.click({ force: true });
+        await this.page.waitForTimeout(2000);
       } else {
         throw new Error(`[${retryCount}] No suggestion visible for ${creatorName}`);
       }
@@ -166,6 +131,7 @@ async chatWithCreator(retryCount = 0) {
       if (isVisible) {
         console.log(`[${retryCount}] Found creator chat. Clicking...`);
         await fallbackChatItem.first().click({ force: true });
+        await this.page.waitForTimeout(2000);
       } else {
         throw new Error(`[${retryCount}] Could not find ${creatorName} in fallback chat list after scrolling`);
       }
@@ -194,8 +160,6 @@ async chatWithCreator(retryCount = 0) {
     throw new Error(`chatWithCreator failed for ${creatorName}: ${err.message}. Screenshot saved: ${screenshotPath}`);
   }
 }
-
-
 
   async getStartedMassOption()
   {
