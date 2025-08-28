@@ -4,7 +4,7 @@ class SignupPage {
   constructor(page) {
     this.page = page;
 
-    // Locators
+    // Define the Locators
     this.signupBtn = page.locator('[data-eid="Home_WithoutLoggedIn/Signin_btn"]');
     this.signuplink = page.locator('[data-eid="SignIn/Signup_link"]');
     this.emailField = page.locator('[data-eid="SignUp/Email"]');
@@ -17,6 +17,8 @@ class SignupPage {
     this.modal = page.locator('#signUpModal');
   }
 
+  // Created methods()
+
   async goToSignup() {
   
     // Wait and click signup button
@@ -24,7 +26,7 @@ class SignupPage {
     await this.signupBtn.waitFor({ state: 'visible', timeout: 10000 });
     await this.signupBtn.click();
     console.log('Signup button clicked.');
-
+    
     // Wait and click signup link
     console.log('Waiting for signup link...');
     await this.signuplink.waitFor({ state: 'visible', timeout: 10000 });

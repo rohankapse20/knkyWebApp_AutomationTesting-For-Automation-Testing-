@@ -18,7 +18,9 @@
     "playwright-core": "^1.54.2"
   },
   "devDependencies": {
-    "@playwright/test": "^1.54.2",
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^24.3.0",
+    "allure-commandline": "^2.34.1",
     "allure-playwright": "^3.3.3",
     "dotenv": "^17.2.1",
     "playwright": "^1.54.2",
@@ -26,7 +28,7 @@
     "xlsx": "^0.18.5"
   },
   "scripts": {
-    "clean": "rimraf test-results",
+    "clean": "rimraf test-results allure-report allure-results",
     "test": "npm run clean && playwright test",
     "show-report": "playwright show-report test-results/html-report"
   }
