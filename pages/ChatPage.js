@@ -1,166 +1,302 @@
 const { expect } = require('@playwright/test');
 const path = require('path');
-const fs = require('fs');
-
+//const fs = require('fs');
+const { generateRandomMessage } = require('../utils/helpers.js');
 
 class ChatPage {
   constructor(page) {
     this.page = page;
 
-    // Define locators
+    // Locators
     this.getStartedMassChat = page.locator("//button[normalize-space(text())='Get Started']");
     this.messageText = page.locator("//textarea[@placeholder='Type your message here']");
     this.mediaRadio = page.locator("//input[@type='radio' and @value='Media']");
     this.addVaultMediaBtn = page.locator("//button[contains(., 'Add Vault Media')]");
     this.chooseButton = page.locator("//button[normalize-space(text())='Choose']");
     this.followersCheckbox = page.locator("//input[@id='followers']");
-    this.sendButton = page.locator("//button[normalize-space(text())='Send']");
+    this.sendButton = this.page.locator('button.btn.btn-primary:has-text("Send")').first();
+
     this.testVersAccept = page.locator("[data-eid='Home_WithoutLoggedIn/Testversion_btn']");
     this.chatoption = page.locator("//img[contains(@src, 'chat') and @width='28']");
     this.welcomeMessage = page.locator("text=Welcome");
+  
+    this.successPopup = this.page.locator("//h2[normalize-space()='Message sent successfully']");
+    this.successCloseButton = this.page.locator("//button[contains(@class, 'swal2-confirm') and normalize-space(text())='Close']");
   }
 
-  async navigateToChat() {
+async navigateToChat() {
+  try {
+    if (await this.testVersAccept.isVisible({ timeout: 20000 })) {
+      await this.testVersAccept.click();
+      console.log('Accepted test version');
+    }
+
+    await this.chatoption.waitFor({ state: 'visible', timeout: 20000 });
+    await this.chatoption.click();
+    console.log('Clicked Chat icon');
+
+    const chatSearchInput = this.page.locator('#chat-search-box input[type="search"]');
+
     try {
-      console.log('Waiting for test version accept button...');
-      if (await this.testVersAccept.isVisible({ timeout: 5000 })) {
-        await expect(this.testVersAccept).toBeEnabled({ timeout: 3000 });
-        await this.testVersAccept.click();
-        console.log('Clicked on test version accept');
+      await chatSearchInput.waitFor({ state: 'visible', timeout: 10000 });
+    } catch {
+      console.warn('Chat input not found on first click, retrying...');
+      await this.chatoption.click();
+      await chatSearchInput.waitFor({ state: 'visible', timeout: 10000 });
+    }
+
+    console.log('Chat panel loaded successfully');
+  } catch (error) {
+    console.error('Error navigating to Chat:', error.message);
+    await this.page.screenshot({ path: `error_navigate_chat.png` });
+    throw error;
+  }
+}
+
+async waitForChatToLoad(expectedName) {
+    const chatHeader = this.page.locator('.chat-header span'); // adjust this if selector is different
+    const chatMessages = this.page.locator('.chat-messages');  // adjust this too if needed
+
+    try {
+      await chatHeader.waitFor({ state: 'visible', timeout: 10000 });
+      const headerText = await chatHeader.textContent();
+      console.log('Chat header text:', headerText);
+
+      if (!headerText?.includes(expectedName)) {
+        console.warn(`Chat opened, but expected creator name not found. Header: ${headerText}`);
+        return false;
       }
 
-      await this.chatoption.waitFor({ state: 'visible', timeout: 15000 });
-
-      const isEnabled = await this.chatoption.isEnabled();
-      if (!isEnabled) throw new Error('Chat icon is visible but not enabled.');
-
-      await this.page.screenshot({ path: 'before_click_chat.png' });
-      await this.chatoption.click();
-      console.log('Clicked on chat option');
-
-      await this.getStartedMassChat.waitFor({ state: 'visible', timeout: 15000 });
-      console.log('Chat interface loaded');
-
-    } catch (error) {
-      console.error('Error navigating to Chat:', error.message);
-      await this.page.screenshot({ path: `error_navigate_to_chat.png` });
-      throw error;
+      await chatMessages.waitFor({ state: 'visible', timeout: 10000 });
+      console.log('Chat messages are visible.');
+      return true;
+    } catch (err) {
+      console.warn('Chat load wait failed:', err.message);
+      return false;
     }
   }
 
+async chatWithCreator(retryCount = 0) {
+  const creatorName = 'PlayfulMistress';
+  const MAX_RETRIES = 1;
+
+  const searchInput = this.page.locator('#chat-search-box input[type="search"]');
+  const emptyChatText = this.page.locator('text="Chat list is empty :("');
+
+  const suggestionOption = this.page.locator(`//span[@class="profile-last-message" and normalize-space(text())="${creatorName}"]`);
+  const fallbackChatItem = this.page.locator(`//div[contains(@class,"chatList_chatItem__S5T5x")]//span[@class="profile-last-message" and normalize-space(text())="${creatorName}"]`);
+
+  try {
+    console.log(`[${retryCount}] Starting chatWithCreator`);
+    await this.page.waitForTimeout(1000); // Ensure chat panel loads
+
+    const isChatEmpty = await emptyChatText.isVisible({ timeout: 3000 });
+    console.log(`[${retryCount}] Is chat list empty? ${isChatEmpty}`);
+
+    if (isChatEmpty) {
+      // When chat list is empty → Use search box and suggestions
+      console.log(`[${retryCount}] Chat is empty. Searching for ${creatorName}...`);
+      await searchInput.waitFor({ state: 'visible', timeout: 5000 });
+      await searchInput.click({ force: true });
+      await searchInput.fill('');
+      await this.page.waitForTimeout(300);
+      await searchInput.fill(creatorName);
+      await this.page.waitForTimeout(1500);
+
+      const isSuggestionVisible = await suggestionOption.isVisible({ timeout: 5000 }).catch(() => false);
+      if (isSuggestionVisible) {
+        console.log(`[${retryCount}] Suggestion found. Clicking...`);
+        await suggestionOption.click({ force: true });
+        await this.page.waitForTimeout(2000);
+      } else {
+        throw new Error(`[${retryCount}] No suggestion visible for ${creatorName}`);
+      }
+    } else {
+      // Otherwise chat list is NOT empty → Try finding and clicking directly
+      console.log(`[${retryCount}] Chat is not empty. Using fallback selection.`);
+
+      let isVisible = await fallbackChatItem.first().isVisible().catch(() => false);
+
+      // If not visible, try to scroll to load more chats
+      if (!isVisible) {
+        console.log(`[${retryCount}] Creator not immediately visible. Scrolling to find...`);
+        for (let scrollTry = 0; scrollTry < 10; scrollTry++) {
+          await this.page.mouse.wheel(0, 300); // Scroll down
+          await this.page.waitForTimeout(300);
+          isVisible = await fallbackChatItem.first().isVisible().catch(() => false);
+          if (isVisible) break;
+        }
+      }
+
+      if (isVisible) {
+        console.log(`[${retryCount}] Found creator chat. Clicking...`);
+        await fallbackChatItem.first().click({ force: true });
+        await this.page.waitForTimeout(2000);
+      } else {
+        throw new Error(`[${retryCount}] Could not find ${creatorName} in fallback chat list after scrolling`);
+      }
+    }
+
+    // Step 3: Wait for chat to load after click
+    const chatLoaded = await this.waitForChatToLoad(creatorName);
+    if (!chatLoaded) {
+      if (retryCount < MAX_RETRIES) {
+        console.warn(`[${retryCount}] Chat did not load. Retrying after reload...`);
+        await this.page.reload();
+        await this.page.waitForTimeout(4000);
+        return await this.chatWithCreator(retryCount + 1);
+      } else {
+        const screenshotPath = path.resolve(`screenshots/chat-failure-${Date.now()}.png`);
+        await this.page.screenshot({ path: screenshotPath, fullPage: true });
+        throw new Error(`Chat did not load after retry. Screenshot saved at: ${screenshotPath}`);
+      }
+    }
+
+    console.log(`[${retryCount}] Chat successfully loaded with ${creatorName}`);
+
+  } catch (err) {
+    const screenshotPath = path.resolve(`screenshots/chat-error-${Date.now()}.png`);
+    await this.page.screenshot({ path: screenshotPath, fullPage: true });
+    throw new Error(`chatWithCreator failed for ${creatorName}: ${err.message}. Screenshot saved: ${screenshotPath}`);
+  }
+}
+
+  async getStartedMassOption()
+  {
+    await this.getStartedMassChat.waitFor({ state: 'visible', timeout: 10000 });
+      console.log('Loaded Chat interface');
+
+  }
   async handleOtpVerification() {
-    const otpModal = this.page.locator("//div[contains(@class, 'modal-body') and .//div[contains(text(), 'Login Verification')]]");
-    const otpInput = this.page.locator("//div[contains(@class, 'modal-body')]//input[@placeholder='Enter OTP code']");
-    const verifyBtn = this.page.locator("//div[contains(@class, 'modal-body')]//button[normalize-space(text())='Verify']");
+    const otpModal = this.page.locator("//div[contains(text(), 'Login Verification')]");
+    const otpInput = this.page.locator("//input[@placeholder='Enter OTP code']");
+    const verifyBtn = this.page.locator("//button[normalize-space(text())='Verify']");
 
     try {
-      await otpModal.first().waitFor({ state: 'visible', timeout: 10000 });
-      await otpInput.waitFor({ timeout: 5000 });
+      await otpModal.waitFor({ state: 'visible', timeout: 10000 });
       await otpInput.fill('123456');
 
       for (let i = 0; i < 10; i++) {
-        const isEnabled = await verifyBtn.isEnabled();
-        if (isEnabled) break;
+        if (await verifyBtn.isEnabled()) break;
         await this.page.waitForTimeout(500);
       }
 
       await verifyBtn.click();
-      await otpModal.first().waitFor({ state: 'hidden', timeout: 10000 });
-
+      await otpModal.waitFor({ state: 'hidden', timeout: 10000 });
+      console.log('OTP Verified');
     } catch (error) {
-      console.error('Error during OTP verification:', error.message);
-      await this.page.screenshot({ path: 'otp_verification_failed.png' });
-      throw error;
+      console.warn('OTP modal not shown or verification skipped.');
     }
 
     await this.page.waitForTimeout(2000);
   }
 
-
 async sendMassMessageFromData({ type, content }) {
+  let messageToSend = content;
   try {
-    if (await this.getStartedMassChat.isVisible({ timeout: 10000 })) {
+    if (await this.getStartedMassChat.isVisible({ timeout: 5000 })) {
       await this.getStartedMassChat.click();
-      console.log('Clicked on Get Started button');
-    }
-
-    if (type === 'media') {
-      await this.mediaRadio.waitFor({ timeout: 10000 });
-      await this.mediaRadio.click();
-      console.log('Selected media message type');
-
-      await this.addVaultMediaBtn.waitFor({ timeout: 10000 });
-      await this.addVaultMediaBtn.click();
-      console.log('Clicked Add Vault Media');
-
-      const addNewButton = this.page.locator("//button[normalize-space(text())='Add New']");
-      await addNewButton.waitFor({ timeout: 10000 });
-      await addNewButton.click();
-      console.log('Clicked Add New');
-
-      const mediaUploadOption = this.page.locator("//span[normalize-space(text())='Media upload']");
-      await mediaUploadOption.waitFor({ timeout: 10000 });
-      await mediaUploadOption.click();
-      console.log('Clicked Media Upload');
-
-      // Upload file
-      if (!fs.existsSync(content)) {
-        throw new Error(`File does not exist: ${content}`);
+      console.log('Clicked Get Started');
+      
+      if (!content) {
+        messageToSend = generateRandomMessage();
       }
-
-      const fileInput = this.page.locator('//span[normalize-space(text())="Media upload"]');
-      const uploadFilePath = path.resolve(content);
-      await fileInput.setInputFiles(uploadFilePath);
-      console.log(`Uploaded file: ${uploadFilePath}`);
-
-      // Wait for upload to finish by checking for progress bar to disappear or Choose to become enabled
-      const chooseBtn = this.chooseButton;
-
-      console.log('Waiting for Choose button to be enabled...');
-      await expect(chooseBtn).toBeEnabled({ timeout: 20000 }); // Wait up to 20s
-      console.log('Choose button is enabled now');
-
-      await chooseBtn.click();
-      console.log('Clicked Choose button');
-
-    } else if (type === 'text') {
-      await this.messageText.waitFor({ timeout: 10000 });
-      await this.messageText.fill(content);
+      
+      await this.messageText.fill(messageToSend);
       console.log('Filled message text');
     }
-
+    return messageToSend;
   } catch (error) {
-    console.error(`Failed to send mass ${type} message:`, error.message);
+    console.error(`Error sending mass ${type} message:`, error.message);
     await this.page.screenshot({ path: `error_send_mass_${type}.png` });
     throw error;
   }
 }
 
-  async selctSendDetails() {
-    try {
-      await this.followersCheckbox.waitFor({ state: 'visible', timeout: 10000 });
-      await expect(this.followersCheckbox).toBeEnabled();
-      await this.followersCheckbox.check();
-      console.log('Checked followers checkbox');
-    } catch (error) {
-      console.error('Failed to select followers checkbox:', error.message);
-      await this.page.screenshot({ path: 'error_followers_checkbox.png' });
-      throw error;
-    }
-  }
+async selectSendDetails() {
+  try {
+    // For Followers Select
+    await this.followersCheckbox.waitFor({ state: 'visible', timeout: 10000 });
+    await expect(this.followersCheckbox).toBeEnabled();
+    await this.followersCheckbox.check();
+    console.log('Checked followers checkbox');
 
-  async submitForm() {
-    try {
-      await this.sendButton.waitFor({ state: 'visible', timeout: 10000 });
-      await expect(this.sendButton).toBeEnabled();
-      await this.sendButton.click();
-      console.log('Clicked Send button');
-    } catch (error) {
-      console.error('Failed to click Send button:', error.message);
-      await this.page.screenshot({ path: 'error_send_button.png' });
-      throw error;
-    }
+    //For Active Subscribers Select
+
+    const activeSubscribersCheckbox = this.page.locator("//input[@type='checkbox' and @id='subscribers']");
+    await expect(activeSubscribersCheckbox).toBeEnabled();
+    await activeSubscribersCheckbox.check();
+    console.log('Checked active subscribers');
+
+
+    // Scroll the Send button into view (or page down if needed)
+    await this.sendButton.scrollIntoViewIfNeeded();
+    console.log('Scrolled to Send button');
+
+    // Optional: wait a little for UI to stabilize
+    await this.page.waitForTimeout(1000);
+
+  } catch (error) {
+    console.error('Failed to select followers checkbox:', error.message);
+    await this.page.screenshot({ path: 'error_followers_checkbox.png' });
+    throw error;
   }
+}
+async submitForm() {
+  try {
+    await this.page.waitForTimeout(1000);
+    await this.sendButton.scrollIntoViewIfNeeded();
+    await expect(this.sendButton).toBeVisible({ timeout: 10000 });
+    await expect(this.sendButton).toBeEnabled({ timeout: 10000 });
+
+    await this.sendButton.evaluate((btn) => {
+      return btn && !btn.disabled && btn.offsetParent !== null;
+    });
+
+    await this.sendButton.click({ trial: true });
+    await this.sendButton.click();
+    console.log('Clicked Send button');
+
+  } catch (error) {
+    console.error('Failed in submitForm():', error.message);
+    if (!this.page.isClosed()) {
+      await this.page.screenshot({ path: 'error_submit_form.png', fullPage: true });
+    }
+    throw error;
+  }
+}
+
+
+async waitForSuccessPopup() {
+  try {
+    await this.successPopup.waitFor({ state: 'visible', timeout: 20000 });
+    console.log('Success popup appeared');
+  } catch (error) {
+    console.error('Success popup not found:', error.message);
+    await this.page.screenshot({ path: 'error_success_popup.png' });
+    throw error;
+  }
+}
+
+async closeSuccessPopup() {
+  try {
+    await this.successCloseButton.click();
+
+    // Add a quick check to ensure the popup closes
+    await this.successPopup.waitFor({ state: 'hidden', timeout: 5000 });
+    console.log('Closed success popup');
+  } catch (error) {
+    console.error('Failed to close success popup:', error.message);
+
+    // Guard against crashing on screenshot
+    if (!this.page.isClosed()) {
+      await this.page.screenshot({ path: 'error_close_success_popup.png' });
+    }
+
+    throw error;
+  }
+}
+
 }
 
 module.exports = { ChatPage };
