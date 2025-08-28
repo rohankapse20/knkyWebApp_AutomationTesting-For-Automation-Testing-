@@ -135,7 +135,6 @@ fanData.forEach((fan, index) => {test(`Verify message visible to fan #${index + 
     await chat.chatWithCreator();
     console.log('Opened chat with creator.');
     
-
     // // Example if sending message dynamically:
     //  const sentMessage = await chat.sendMassMessageFromData({ type: 'text', content: '' });
 
