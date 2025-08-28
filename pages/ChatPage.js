@@ -7,7 +7,7 @@ class ChatPage {
   constructor(page) {
     this.page = page;
 
-    // Locators
+    // Define the locators
     this.getStartedMassChat = page.locator("//button[normalize-space(text())='Get Started']");
     this.messageText = page.locator("//textarea[@placeholder='Type your message here']");
     this.mediaRadio = page.locator("//input[@type='radio' and @value='Media']");
@@ -137,7 +137,7 @@ async chatWithCreator(retryCount = 0) {
       }
     }
 
-    // Step 3: Wait for chat to load after click
+    // Wait for chat to load after click
     const chatLoaded = await this.waitForChatToLoad(creatorName);
     if (!chatLoaded) {
       if (retryCount < MAX_RETRIES) {
@@ -233,7 +233,7 @@ async selectSendDetails() {
     await this.sendButton.scrollIntoViewIfNeeded();
     console.log('Scrolled to Send button');
 
-    // Optional: wait a little for UI to stabilize
+    // Wait a little for UI to stabilize
     await this.page.waitForTimeout(1000);
 
   } catch (error) {
