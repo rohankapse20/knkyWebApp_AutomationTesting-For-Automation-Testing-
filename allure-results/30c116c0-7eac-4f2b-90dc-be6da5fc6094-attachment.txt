@@ -1,3 +1,0 @@
-Test is failed !!! page.click: selector: expected string, got object
-    at SignupPage.submit (D:\Rohan\Playwright_Automation\knky-test-framework\pages\SignupPage.js:48:25)
-    at D:\Rohan\Playwright_Automation\knky-test-framework\tests\signup.spec.js:19:22
