@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 const { getTestData } = require('../utils/readExcel');
 const { BasePage } = require('../pages/BasePage');
 const { SigninPage } = require('../pages/SigninPage');
-const { ChatPage } = require('../pages/chatpage');
+const { ChatPage } = require('../pages/ChatPage'); // ✅ correct
 const path = require('path');
 
 const chatData = getTestData('./data/testData.xlsx', 'massMsgSend_Data');
