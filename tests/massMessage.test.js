@@ -111,44 +111,49 @@ chatData.forEach((dataRow, index) => {
 
 
 const fanData = getTestData('./data/testData.xlsx', 'users_LoginData');
+const fs = require('fs');
 
-fanData.forEach((fan, index) => {test(`Verify message visible to fan #${index + 1} - ${fan.FanEmail}`, async ({ page }) => {
-  const base = new BasePage(page);
-  const signin = new SigninPage(page);
-  const chat = new ChatPage(page);
+fanData.forEach((fan, index) => {
+  test(`Verify message visible to fan #${index + 1} - ${fan.FanEmail}`, async ({ page }) => {
+    const base = new BasePage(page);
+    const signin = new SigninPage(page);
+    const chat = new ChatPage(page);
 
-  try {
-    await base.navigate();
-    console.log('Navigated to base URL for fan login');
-    await signin.goToSignin();
-    await signin.fillSigninForm(fan.FanEmail, fan.FanPassword);
-    await signin.signinSubmit();
-    await chat.handleOtpVerification();
-    console.log(`Logged in as fan: ${fan.FanEmail}`);
+    try {
+      await base.navigate();
+      await signin.goToSignin();
+      await signin.fillSigninForm(fan.FanEmail, fan.FanPassword);
+      await signin.signinSubmit();
+      await chat.handleOtpVerification();
 
-    const welcomePopup = page.locator(`text=Welcome Back,`);
-    await expect(welcomePopup).toBeVisible({ timeout: 20000 });
-    console.log('Login confirmed for fan.');
+      const welcomePopup = page.locator(`text=Welcome Back,`);
+      await expect(welcomePopup).toBeVisible({ timeout: 20000 });
+      console.log(`Logged in as fan: ${fan.FanEmail}`);
 
-    await chat.navigateToChat();
-    console.log('Navigated to Chat for fan.');
+      await chat.navigateToChat();
+      await chat.chatWithCreator();
 
-    await chat.chatWithCreator();
-    console.log('Opened chat with creator.');
-    
-    // // Example if sending message dynamically:
-    //  const sentMessage = await chat.sendMassMessageFromData({ type: 'text', content: '' });
+      // Optional: wait again if chat not instantly loaded
+      await chat.waitForChatToLoad?.();
 
-    // // Use the message sent to verify it's visible
-    // const messageLocator = page.locator(`text=${messageToCheck}`);
-    // await expect(messageLocator).toBeVisible({ timeout: 15000 });
-    // console.log('Verified message visible to fan.');
+      // Load the message sent by creator from JSON
+      const messagePath = path.resolve(__dirname, '../data/lastSentMessage.json'); // Adjust path if needed
+      const messageData = JSON.parse(fs.readFileSync(messagePath, 'utf-8'));
+      const expectedSentMessage = messageData.message;
+      console.log(`Expecting to find message: "${expectedSentMessage}"`);
 
-    expect(true).toBeTruthy();
-  } catch (error) {
-    console.error(`Verification failed for fan ${fan.FanEmail}:`, error.message);
-    await page.screenshot({ path: `error_verify_message_fan_${index + 1}.png` });
-    throw error;
-  }
-});
+      // Get and validate the last received message
+      const lastReceivedMessage = await chat.getLastReceivedMsgFromCreator(expectedSentMessage);
+
+      // Additional assertion (for strict Playwright reporting)
+      expect(lastReceivedMessage).toBe(expectedSentMessage);
+
+      console.log('Fan test passed: Message received successfully...');
+    } 
+    catch (error) {
+      console.error(`Verification failed for fan ${fan.FanEmail}:`, error.message);
+      await page.screenshot({ path: `error_verify_message_fan_${index + 1}.png`, fullPage: true });
+      throw error;
+    }
+  });
 });
