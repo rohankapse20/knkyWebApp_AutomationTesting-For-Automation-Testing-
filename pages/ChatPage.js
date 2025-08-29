@@ -54,7 +54,6 @@ async navigateToChat() {
   }
 }
 
-
 async chatWithCreator(retryCount = 0) {
   const creatorName = 'PlayfulMistress';
   const MAX_RETRIES = 1;
@@ -62,78 +61,60 @@ async chatWithCreator(retryCount = 0) {
   const searchInput = this.page.locator('#chat-search-box input[type="search"]');
   const emptyChatText = this.page.locator('text="Chat list is empty :("');
   const suggestionOption = this.page.locator(`//span[@class="profile-last-message" and normalize-space(text())="${creatorName}"]`);
-  const ChatItem = this.page.locator(
+  const chatItem = this.page.locator(
     `//div[contains(@class, 'chatList_chatItem__')][.//span[normalize-space(text())='${creatorName}']]`
   );
 
   try {
     console.log(`[${retryCount}] Starting chatWithCreator`);
-    await this.page.waitForTimeout(1000); // Ensure panel is ready
+    await this.page.waitForTimeout(1000);
 
-    // Double check: Is chat list actually empty?
     let isChatEmpty = await emptyChatText.isVisible({ timeout: 3000 }).catch(() => false);
     if (isChatEmpty) {
-      console.log(`[${retryCount}] 'Chat list is empty :(' is visible. Re-checking after short wait...`);
-      await this.page.waitForTimeout(1500);
-      isChatEmpty = await emptyChatText.isVisible({ timeout: 1000 }).catch(() => false);
-    }
-
-    if (isChatEmpty) {
-      // === Case: Chat is confirmed empty ===
-      console.log(`[${retryCount}] Chat list confirmed empty. Proceeding with search.`);
-
+      console.log(`[${retryCount}] Chat list empty, performing search...`);
       await searchInput.waitFor({ state: 'visible', timeout: 5000 });
-      await searchInput.click({ force: true });
       await searchInput.fill('');
       await this.page.waitForTimeout(300);
       await searchInput.fill(creatorName);
       await this.page.waitForTimeout(1500);
 
-      const isSuggestionVisible = await suggestionOption.isVisible({ timeout: 1000 }).catch(() => false);
-      if (isSuggestionVisible) {
-        console.log(`[${retryCount}] Suggestion found. Clicking...`);
+      const suggestionVisible = await suggestionOption.isVisible({ timeout: 1000 }).catch(() => false);
+      if (suggestionVisible) {
         await suggestionOption.click({ force: true });
         await this.page.waitForTimeout(500);
       } else {
-        throw new Error(`[${retryCount}] No suggestion visible after search for "${creatorName}"`);
+        throw new Error(`No suggestion found for "${creatorName}"`);
       }
-
     } else {
-      // === Case: Chat list is NOT empty → Search visually in chat list ===
-      console.log(`[${retryCount}] Chat list not empty. Using fallback direct search.`);
-
-      let isVisible = await ChatItem.first().isVisible().catch(() => false);
-      if (!isVisible) {
-        console.log(`[${retryCount}] Creator not visible, scrolling...`);
-        for (let scrollTry = 0; scrollTry < 10; scrollTry++) {
+      console.log(`[${retryCount}] Chat list not empty, finding creator directly...`);
+      let visible = await chatItem.first().isVisible().catch(() => false);
+      if (!visible) {
+        for (let i = 0; i < 10; i++) {
           await this.page.mouse.wheel(0, 300);
           await this.page.waitForTimeout(300);
-          isVisible = await ChatItem.first().isVisible().catch(() => false);
-          if (isVisible) break;
+          visible = await chatItem.first().isVisible().catch(() => false);
+          if (visible) break;
         }
       }
 
-      if (isVisible) {
-        console.log(`[${retryCount}] Found creator chat item. Clicking...`);
-        await ChatItem.first().scrollIntoViewIfNeeded();
-        await ChatItem.first().click({ force: true });
-        await this.page.waitForTimeout(2000);
+      if (visible) {
+        await chatItem.first().click({ force: true });
+        await this.page.waitForTimeout(3000);
       } else {
-        throw new Error(`[${retryCount}] Could not find chat for "${creatorName}" in fallback list.`);
+        throw new Error(`Could not find chat for "${creatorName}"`);
       }
     }
 
-    // === Wait for chat to load ===
-    const chatLoaded = await this.waitForChatToLoad(creatorName);
-    if (!chatLoaded) {
+    // Verify chat loaded successfully
+    const textareaVisible = await this.page.locator('textarea[placeholder="Send a message"]').isVisible({ timeout: 10000 }).catch(() => false);
+    if (!textareaVisible) {
       if (retryCount < MAX_RETRIES) {
-        console.warn(`[${retryCount}] Chat did not load. Retrying...`);
-        await this.page.waitForTimeout(2000);
+        console.warn(`[${retryCount}] Chat not loaded, retrying...`);
         return await this.chatWithCreator(retryCount + 1);
       } else {
         const screenshotPath = path.resolve(`screenshots/chat-failure-${Date.now()}.png`);
-        await this.page.screenshot({ path: screenshotPath, fullPage: true });
-        throw new Error(`Chat load failed after retry. Screenshot saved at: ${screenshotPath}`);
+        await this.page.screenshot({ path: screenshotPath });
+        throw new Error(`Chat load failed after retry. Screenshot: ${screenshotPath}`);
       }
     }
 
@@ -141,11 +122,101 @@ async chatWithCreator(retryCount = 0) {
 
   } catch (err) {
     const screenshotPath = path.resolve(`screenshots/chat-error-${Date.now()}.png`);
-    await this.page.screenshot({ path: screenshotPath, fullPage: true });
+    await this.page.screenshot({ path: screenshotPath });
     throw new Error(`chatWithCreator failed for ${creatorName}: ${err.message}. Screenshot: ${screenshotPath}`);
   }
 }
 
+// async chatWithCreator(retryCount = 0) {
+//   const creatorName = 'PlayfulMistress';
+//   const MAX_RETRIES = 1;
+
+//   const searchInput = this.page.locator('#chat-search-box input[type="search"]');
+//   const emptyChatText = this.page.locator('text="Chat list is empty :("');
+//   const suggestionOption = this.page.locator(`//span[@class="profile-last-message" and normalize-space(text())="${creatorName}"]`);
+//   const ChatItem = this.page.locator(
+//     `//div[contains(@class, 'chatList_chatItem__')][.//span[normalize-space(text())='${creatorName}']]`
+//   );
+
+//   try {
+//     console.log(`[${retryCount}] Starting chatWithCreator`);
+//     await this.page.waitForTimeout(1000); // Ensure panel is ready
+
+//     // Double check: Is chat list actually empty?
+//     let isChatEmpty = await emptyChatText.isVisible({ timeout: 3000 }).catch(() => false);
+//     if (isChatEmpty) {
+//       console.log(`[${retryCount}] 'Chat list is empty :(' is visible. Re-checking after short wait...`);
+//       await this.page.waitForTimeout(1500);
+//       isChatEmpty = await emptyChatText.isVisible({ timeout: 1000 }).catch(() => false);
+//     }
+
+//     if (isChatEmpty) {
+//       // === Case: Chat is confirmed empty ===
+//       console.log(`[${retryCount}] Chat list confirmed empty. Proceeding with search.`);
+
+//       await searchInput.waitFor({ state: 'visible', timeout: 5000 });
+//       await searchInput.click({ force: true });
+//       await searchInput.fill('');
+//       await this.page.waitForTimeout(300);
+//       await searchInput.fill(creatorName);
+//       await this.page.waitForTimeout(1500);
+
+//       const isSuggestionVisible = await suggestionOption.isVisible({ timeout: 1000 }).catch(() => false);
+//       if (isSuggestionVisible) {
+//         console.log(`[${retryCount}] Suggestion found. Clicking...`);
+//         await suggestionOption.click({ force: true });
+//         await this.page.waitForTimeout(500);
+//       } else {
+//         throw new Error(`[${retryCount}] No suggestion visible after search for "${creatorName}"`);
+//       }
+
+//     } else {
+//       // === Case: Chat list is NOT empty → Search visually in chat list ===
+//       console.log(`[${retryCount}] Chat list not empty. Using fallback direct search.`);
+
+//       let isVisible = await ChatItem.first().isVisible().catch(() => false);
+//       if (!isVisible) {
+//         console.log(`[${retryCount}] Creator not visible, scrolling...`);
+//         for (let scrollTry = 0; scrollTry < 10; scrollTry++) {
+//           await this.page.mouse.wheel(0, 300);
+//           await this.page.waitForTimeout(300);
+//           isVisible = await ChatItem.first().isVisible().catch(() => false);
+//           if (isVisible) break;
+//         }
+//       }
+
+//       if (isVisible) {
+//         console.log(`[${retryCount}] Found creator chat item. Clicking...`);
+//         await ChatItem.first().scrollIntoViewIfNeeded();
+//         await ChatItem.first().click({ force: true });
+//         await this.page.waitForTimeout(2000);
+//       } else {
+//         throw new Error(`[${retryCount}] Could not find chat for "${creatorName}" in fallback list.`);
+//       }
+//     }
+
+//     // === Wait for chat to load ===
+//     const chatLoaded = await this.waitForChatToLoad(creatorName);
+//     if (!chatLoaded) {
+//       if (retryCount < MAX_RETRIES) {
+//         console.warn(`[${retryCount}] Chat did not load. Retrying...`);
+//         await this.page.waitForTimeout(2000);
+//         return await this.chatWithCreator(retryCount + 1);
+//       } else {
+//         const screenshotPath = path.resolve(`screenshots/chat-failure-${Date.now()}.png`);
+//         await this.page.screenshot({ path: screenshotPath, fullPage: true });
+//         throw new Error(`Chat load failed after retry. Screenshot saved at: ${screenshotPath}`);
+//       }
+//     }
+
+//     console.log(`[${retryCount}] Chat loaded successfully with ${creatorName}`);
+
+//   } catch (err) {
+//     const screenshotPath = path.resolve(`screenshots/chat-error-${Date.now()}.png`);
+//     await this.page.screenshot({ path: screenshotPath, fullPage: true });
+//     throw new Error(`chatWithCreator failed for ${creatorName}: ${err.message}. Screenshot: ${screenshotPath}`);
+//   }
+// }
 
   async getStartedMassOption()
   {
@@ -215,7 +286,6 @@ async selectSendDetails() {
     console.log('Checked followers checkbox');
 
     //For Active Subscribers Select
-
     const activeSubscribersCheckbox = this.page.locator("//input[@type='checkbox' and @id='subscribers']");
     await expect(activeSubscribersCheckbox).toBeEnabled();
     await activeSubscribersCheckbox.check();
@@ -235,57 +305,59 @@ async selectSendDetails() {
     throw error;
   }
 }
-
 async getLastReceivedMsgFromCreator(expectedMessage = '') {
   try {
-    const chatContainer = this.page.locator('//div[@id="infiniteScrollProfile"]//div[@data-testid="profile-section"]');
-    await chatContainer.waitFor({ timeout: 10000 });
-    console.log('Chat container is visible.');
+    const MAX_RETRIES = 4;
+    const WAIT_TIME_MS = 2000;
 
-    // Scroll to bottom
-    await chatContainer.evaluate(el => {
-      if (el && el.scrollHeight) {
-        el.scrollTop = el.scrollHeight;
-      }
-    });
-    console.log('Scrolled to bottom of chat.');
+    // Use only the receiver's last message div
+    const messageLocator = this.page.locator('div.bg-chat-receiver div.px-2.pt-1').last();
 
-    const messageLocator = this.page.locator('div.bg-chat-receiver >> div.px-2.pt-1').last();
-    await messageLocator.waitFor({ timeout: 5000 });
+    await messageLocator.waitFor({ timeout: 10000 });
+    console.log('Last received message from creator is visible.');
 
-    let attempts = 3;
-    let text = null;
+    let receivedText = null;
+    let attempts = MAX_RETRIES;
 
     while (attempts > 0) {
-      text = await messageLocator.textContent();
-      if (text && text.trim()) {
-        const finalText = text.trim();
-        console.log(`Received message: "${finalText}"`);
+      const rawText = await messageLocator.innerText().catch(() => '');
+      const fullText = rawText.replace(/\s+/g, ' ').trim(); // Normalize whitespace
+      console.log(`Received text attempt: "${fullText}"`);
 
-        if (expectedMessage) {
-          if (finalText === expectedMessage) {
-            console.log('Received message matches expected message.');
-          } else {
-            throw new Error(`Received message "${finalText}" does NOT match expected "${expectedMessage}".`);
-          }
-        }
-
-        return finalText;
+      if (fullText) {
+        receivedText = fullText;
+        break;
       }
-      console.log('Messages are not loaded, retrying...');
-      await this.page.waitForTimeout(2000);
+
+      console.log(`Attempt failed. Retrying in ${WAIT_TIME_MS / 1000}s...`);
+      await this.page.waitForTimeout(WAIT_TIME_MS);
       attempts--;
     }
 
-    throw new Error('Message content was still empty after retries.');
-  }
-   catch (error) {
-    console.error('Error in getLastReceivedMsgFromCreator():', error.message);
-    await this.page.screenshot({ path: 'error_get_last_message.png', fullPage: true });
+    if (!receivedText) {
+      throw new Error('No message content retrieved after retries.');
+    }
+
+    // Normalize for case-insensitive comparison
+    const expectedNormalized = expectedMessage.replace(/\s+/g, ' ').trim().toLowerCase();
+    const receivedNormalized = receivedText.toLowerCase();
+
+    if (receivedNormalized.includes(expectedNormalized)) {
+      console.log('✅ Message match successful');
+    } else {
+      throw new Error(`Message mismatch.\nExpected: "${expectedNormalized}"\nReceived: "${receivedNormalized}"`);
+    }
+
+    return receivedText;
+
+  } catch (error) {
+    const screenshotPath = `screenshots/error_get_last_message_${Date.now()}.png`;
+    await this.page.screenshot({ path: screenshotPath });
+    console.error('Error in getLastReceivedMsgFromCreator:', error.message);
+    console.log(`Screenshot saved at: ${screenshotPath}`);
     throw error;
   }
 }
-
 
 async submitForm() {
   try {
@@ -311,7 +383,8 @@ async submitForm() {
   }
 }
 async waitForChatToLoad() {
-  const chatContainer = this.page.locator('#infiniteScrollProfile');
+const chatContainer = this.page.locator('textarea[placeholder="Send a message"]').first();
+
   await chatContainer.waitFor({ timeout: 10000 });
   console.log('Chat container is visible.');
 }

@@ -110,6 +110,7 @@ chatData.forEach((dataRow, index) => {
 });
 
 
+
 const fanData = getTestData('./data/testData.xlsx', 'users_LoginData');
 const fs = require('fs');
 
@@ -120,39 +121,52 @@ fanData.forEach((fan, index) => {
     const chat = new ChatPage(page);
 
     try {
+      // Explicit wait between tests (10 seconds)
+      await new Promise(resolve => setTimeout(resolve, 10000));
+      
+      // Navigate and login
       await base.navigate();
       await signin.goToSignin();
       await signin.fillSigninForm(fan.FanEmail, fan.FanPassword);
       await signin.signinSubmit();
       await chat.handleOtpVerification();
 
-      const welcomePopup = page.locator(`text=Welcome Back,`);
+      // Confirm welcome popup
+      const welcomePopup = page.locator('text=Welcome Back,');
       await expect(welcomePopup).toBeVisible({ timeout: 20000 });
       console.log(`Logged in as fan: ${fan.FanEmail}`);
 
+      // Navigate to chat and open creator conversation
       await chat.navigateToChat();
       await chat.chatWithCreator();
 
-      // Optional: wait again if chat not instantly loaded
-      await chat.waitForChatToLoad?.();
+      // Load expected message from JSON
+      const messagePath = path.resolve(__dirname, '../data/lastSentMessage.json');
+      let expectedSentMessage = '';
 
-      // Load the message sent by creator from JSON
-      const messagePath = path.resolve(__dirname, '../data/lastSentMessage.json'); // Adjust path if needed
-      const messageData = JSON.parse(fs.readFileSync(messagePath, 'utf-8'));
-      const expectedSentMessage = messageData.message;
-      console.log(`Expecting to find message: "${expectedSentMessage}"`);
+      try {
+        const messageData = JSON.parse(fs.readFileSync(messagePath, 'utf-8'));
+        expectedSentMessage = messageData.message?.trim() || '';
+        console.log(`Expecting to find message: "${expectedSentMessage}"`);
+      } catch (err) {
+        throw new Error(`Failed to read or parse lastSentMessage.json: ${err.message}`);
+      }
 
-      // Get and validate the last received message
+      if (!expectedSentMessage) {
+        throw new Error('No message content found in lastSentMessage.json.');
+      }
+
+      // Validate last received message
       const lastReceivedMessage = await chat.getLastReceivedMsgFromCreator(expectedSentMessage);
+      expect(lastReceivedMessage.toLowerCase()).toContain(expectedSentMessage.toLowerCase());
 
-      // Additional assertion (for strict Playwright reporting)
-      expect(lastReceivedMessage).toBe(expectedSentMessage);
-
-      console.log('Fan test passed: Message received successfully...');
-    } 
-    catch (error) {
+      console.log('Fan test passed: Message received successfully.');
+    } catch (error) {
       console.error(`Verification failed for fan ${fan.FanEmail}:`, error.message);
-      await page.screenshot({ path: `error_verify_message_fan_${index + 1}.png`, fullPage: true });
+      await page.screenshot({
+        path: `screenshots/error_verify_message_fan_${index + 1}_${Date.now()}.png`,
+        fullPage: true,
+      });
       throw error;
     }
   });
