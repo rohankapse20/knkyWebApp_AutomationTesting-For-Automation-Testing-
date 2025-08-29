@@ -110,7 +110,6 @@ chatData.forEach((dataRow, index) => {
 });
 
 
-
 const fanData = getTestData('./data/testData.xlsx', 'users_LoginData');
 const fs = require('fs');
 
@@ -123,7 +122,7 @@ fanData.forEach((fan, index) => {
     try {
       // Explicit wait between tests (10 seconds)
       await new Promise(resolve => setTimeout(resolve, 10000));
-      
+
       // Navigate and login
       await base.navigate();
       await signin.goToSignin();
@@ -158,7 +157,12 @@ fanData.forEach((fan, index) => {
 
       // Validate last received message
       const lastReceivedMessage = await chat.getLastReceivedMsgFromCreator(expectedSentMessage);
-      expect(lastReceivedMessage.toLowerCase()).toContain(expectedSentMessage.toLowerCase());
+
+      // Normalize whitespace & case in both strings before comparison
+      const normalizedReceived = lastReceivedMessage.toLowerCase().replace(/\s+/g, ' ').trim();
+      const normalizedExpected = expectedSentMessage.toLowerCase().replace(/\s+/g, ' ').trim();
+
+      expect(normalizedReceived).toContain(normalizedExpected);
 
       console.log('Fan test passed: Message received successfully.');
     } catch (error) {
