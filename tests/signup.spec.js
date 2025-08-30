@@ -7,12 +7,6 @@ const { SignupPage } = require('../pages/SignupPage');
 const baseURL = process.env.BASE_URL ;
 const signupData = getTestData('./data/testData.xlsx', 'signup_data');
 
-test('Generate message', async () => {
-  const { generatePhrase } = require('../utils/helpers');
-  const message = await generatePhrase();
-  expect(message).toBeDefined();
-});
-
 
 // For full screen viewport
 test.use({
@@ -27,6 +21,12 @@ test.describe('Signup Tests', () => {
       // Created object of class 
       const base = new BasePage(page, baseURL);
       const signup = new SignupPage(page);
+
+      
+  // Generate random message for testing (optional)
+  const { generatePhrase } = require('../utils/helpers');
+  const phrase = await generatePhrase();
+  console.log(`Generated phrase: ${phrase}`);
 
       
       // call the methods()

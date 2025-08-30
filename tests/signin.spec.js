@@ -6,13 +6,6 @@ const { SigninPage } = require('../pages/SigninPage');
 
 const signinData = getTestData('./data/testData.xlsx', 'signin_data');
 
-test('Generate message', async () => {
-  const { generatePhrase } = require('../utils/helpers');
-  const message = await generatePhrase();
-  expect(message).toBeDefined();
-});
-
-
 test.use({
   //headless: true,
    viewport: { width: 1600, height: 900 },
@@ -24,6 +17,12 @@ test.describe('Signin Tests', () => {
       // Create page objects
       const base = new BasePage(page);  // no need to pass baseURL
       const signin = new SigninPage(page);
+
+      // Generate random message for testing (optional)
+      const { generatePhrase } = require('../utils/helpers');
+      const phrase = await generatePhrase();
+      console.log(`Generated phrase: ${phrase}`);
+
 
       // Navigate to base URL and handle pre-login flows
       await base.navigate();

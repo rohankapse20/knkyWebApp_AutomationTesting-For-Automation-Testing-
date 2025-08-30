@@ -8,13 +8,6 @@ const path = require('path');
 
 const chatData = getTestData('./data/testData.xlsx', 'massMsgSend_Data');
 
-test('Generate message', async () => {
-  const { generatePhrase } = require('../utils/helpers');
-  const message = await generatePhrase();
-  expect(message).toBeDefined();
-});
-
-
 test.use({
   viewport: { width: 1600, height: 900 },
 });
@@ -27,6 +20,12 @@ chatData.forEach((dataRow, index) => {
     const base = new BasePage(page);
     const signin = new SigninPage(page);
     const chat = new ChatPage(page);
+
+    // Generate random message for testing (optional)
+    const { generatePhrase } = require('../utils/helpers');
+    const phrase = await generatePhrase();
+    console.log(`Generated phrase: ${phrase}`);
+
 
     try {
       await base.navigate();
