@@ -6,6 +6,17 @@
  * @param {string} selector - CSS or data-testid locator
  * @param {string} value - Text to fill
  */
+
+// ✅ Dynamic import of ES Module inside CommonJS
+async function generatePhrase() {
+  const { faker } = await import('@faker-js/faker');
+  const line1 = faker.hacker.phrase();
+  const line2 = faker.company.catchPhrase();
+  return `${line1}\n${line2}`;
+}
+
+
+
 async function fillInput(page, selector, value) {
   const element = page.locator(selector);
   await element.waitFor({ state: 'visible', timeout: 10000 });
@@ -125,7 +136,8 @@ module.exports = {
   selectDropdown,
   uploadFile,
   generateRandomMessage,
-  waitForChatToLoad
+  waitForChatToLoad, 
+  generatePhrase
 
 //  Call the function with define the helper then used the fun() by passing parameters
 

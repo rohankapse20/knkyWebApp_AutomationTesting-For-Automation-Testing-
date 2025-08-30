@@ -7,6 +7,13 @@ const { SignupPage } = require('../pages/SignupPage');
 const baseURL = process.env.BASE_URL ;
 const signupData = getTestData('./data/testData.xlsx', 'signup_data');
 
+test('Generate message', async () => {
+  const { generatePhrase } = require('../utils/helpers');
+  const message = await generatePhrase();
+  expect(message).toBeDefined();
+});
+
+
 // For full screen viewport
 test.use({
   viewport: { width: 1600, height: 900 },

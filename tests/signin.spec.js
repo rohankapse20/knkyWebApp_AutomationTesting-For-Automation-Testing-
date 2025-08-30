@@ -6,6 +6,13 @@ const { SigninPage } = require('../pages/SigninPage');
 
 const signinData = getTestData('./data/testData.xlsx', 'signin_data');
 
+test('Generate message', async () => {
+  const { generatePhrase } = require('../utils/helpers');
+  const message = await generatePhrase();
+  expect(message).toBeDefined();
+});
+
+
 test.use({
   //headless: true,
    viewport: { width: 1600, height: 900 },

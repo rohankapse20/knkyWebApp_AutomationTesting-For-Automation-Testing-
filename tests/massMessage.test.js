@@ -8,6 +8,13 @@ const path = require('path');
 
 const chatData = getTestData('./data/testData.xlsx', 'massMsgSend_Data');
 
+test('Generate message', async () => {
+  const { generatePhrase } = require('../utils/helpers');
+  const message = await generatePhrase();
+  expect(message).toBeDefined();
+});
+
+
 test.use({
   viewport: { width: 1600, height: 900 },
 });
