@@ -7,14 +7,6 @@
  * @param {string} value - Text to fill
  */
 
-// ✅ Dynamic import of ES Module inside CommonJS
-async function generatePhrase() {
-  const { faker } = await import('@faker-js/faker');
-  const line1 = faker.hacker.phrase();
-  const line2 = faker.company.catchPhrase();
-  return `${line1}\n${line2}`;
-}
-
 
 
 async function fillInput(page, selector, value) {
@@ -87,18 +79,50 @@ async function uploadFile(page, selector, filePath) {
   await input.setInputFiles(filePath);
   console.log(`Uploaded file: ${filePath} to input ${selector}`);
 }
-
-const { faker } = require('@faker-js/faker');
+// helpers.js
 
 /**
- * Generates a unique two-line message.
- * formatted message with two lines.
+ * Asynchronously generates a unique two-line message using faker (ESM).
+ * Useful when faker must be dynamically imported in a CommonJS environment.
  */
-function generateRandomMessage() {
+async function generatePhrase() {
+  const { faker } = await import('@faker-js/faker');
   const line1 = faker.hacker.phrase();
   const line2 = faker.company.catchPhrase();
   return `${line1}\n${line2}`;
 }
+
+/**
+ * Synchronously generates a unique two-line message.
+ * WARNING: Only works if you're using "type": "module" in package.json
+ * OR have imported faker elsewhere before calling this.
+ */
+let cachedFaker = null;
+
+function generateRandomMessageSync() {
+  if (!cachedFaker) {
+    throw new Error(
+      'faker is not loaded. Use generatePhrase() or modify your setup to allow synchronous imports.'
+    );
+  }
+  const line1 = cachedFaker.hacker.phrase();
+  const line2 = cachedFaker.company.catchPhrase();
+  return `${line1}\n${line2}`;
+}
+
+/**
+ * Load faker once for use with sync generator
+ */
+async function preloadFaker() {
+  const { faker } = await import('@faker-js/faker');
+  cachedFaker = faker;
+}
+
+module.exports = {
+  generatePhrase,
+  generateRandomMessageSync,
+  preloadFaker
+};
 
 
 // For chat loading wait
@@ -135,9 +159,11 @@ module.exports = {
   takeScreenshot,
   selectDropdown,
   uploadFile,
-  generateRandomMessage,
   waitForChatToLoad, 
-  generatePhrase
+  generatePhrase,
+  generateRandomMessageSync,
+  preloadFaker,
+
 
 //  Call the function with define the helper then used the fun() by passing parameters
 
