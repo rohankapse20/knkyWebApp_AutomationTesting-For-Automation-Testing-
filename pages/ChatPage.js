@@ -319,7 +319,6 @@ async selectSendDetails() {
     throw error;
   }
 }
-
 async getLastReceivedMsgFromCreator(expectedMessage = '') {
   try {
     const messageLocator = this.page.locator('div.bg-chat-receiver div.px-2.pt-1').last();
@@ -327,7 +326,7 @@ async getLastReceivedMsgFromCreator(expectedMessage = '') {
     console.log('Last received message is visible.');
 
     // Explicit wait before scroll to ensure content is fully loaded
-    await this.page.waitForTimeout(500); // Adjust as necessary for your application
+    await this.page.waitForTimeout(2000); // Adjust this wait time based on application loading time
 
     const rawText = await messageLocator.innerText();
     const normalizedReceived = rawText.replace(/\s+/g, ' ').trim().toLowerCase();
@@ -338,6 +337,9 @@ async getLastReceivedMsgFromCreator(expectedMessage = '') {
     if (!normalizedReceived.includes(normalizedExpected)) {
       throw new Error('Message does not match expected content.');
     }
+
+    // Wait before highlighting and scrolling
+    await this.page.waitForTimeout(2000); // Adding some wait time before scrolling
 
     // Highlight the message in UI with better visibility and smooth scroll
     await this.page.evaluate((text) => {
@@ -363,8 +365,14 @@ async getLastReceivedMsgFromCreator(expectedMessage = '') {
       }
     }, expectedMessage);
 
-    // Wait after scroll to ensure visibility is updated
-    await this.page.waitForTimeout(1000); // Adjust as necessary for smooth scrolling
+    // Wait after scrolling to ensure the message is in the viewport and adjustments are made
+    await this.page.waitForTimeout(2000); // Give some time for scroll to complete and visibility changes
+
+    // Wait to ensure the highlighted message is rendered properly
+    await this.page.waitForTimeout(2000); // Adjust based on UI responsiveness
+
+    // Wait until the message is actually visible after the scroll (in case it's still transitioning)
+    await messageLocator.waitFor({ state: 'visible', timeout: 5000 }); // Wait until it's fully visible
 
     return rawText;
 
@@ -381,7 +389,6 @@ async getLastReceivedMsgFromCreator(expectedMessage = '') {
     throw error; // Re-throw the error after logging and screenshot
   }
 }
-
 
 async submitForm() {
   try {

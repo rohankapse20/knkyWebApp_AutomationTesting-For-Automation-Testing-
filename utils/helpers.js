@@ -45,12 +45,11 @@ function generateRandomMessage() {
   // Fan message (random selection)
   //const fanMessage = `${fans[Math.floor(Math.random() * fans.length)]} ${fanActions[Math.floor(Math.random() * fanActions.length)]}`;
 
-  // Combine both
+  // get Message for creator
   return `${creatorMessage}`;
 }
 
 console.log(generateRandomMessage());
-
 
 
 /**
