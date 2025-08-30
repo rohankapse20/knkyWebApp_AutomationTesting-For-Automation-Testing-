@@ -1,4 +1,34 @@
-// utils/helpers.js
+const fs = require('fs');
+const path = require('path');
+// Import faker once here
+const { faker } = require('@faker-js/faker');
+
+/**
+ * Generates a random two-line message using faker.hacker or fallback to lorem.sentence()
+ * @returns {string} formatted message with two lines.
+ */
+function generatePhrase() {
+  // Log to check if faker.hacker is available
+  console.log('faker.hacker:', faker.hacker);
+
+  // Check if faker.hacker exists, then fall back to lorem.sentence()
+  const line1 = faker.hacker && faker.hacker.phrase ? faker.hacker.phrase() : faker.lorem.sentence();
+  const line2 = faker.company.catchPhrase();
+
+  return `${line1}\n${line2}`;
+}
+
+/**
+ * Generates a random two-line message using fallback to lorem.sentence() if hacker.phrase() is unavailable
+ * @returns {string} formatted message with two lines.
+ */
+function generateRandomMessage() {
+  // Fallback to lorem.sentence() if hacker.phrase() is not available
+  const line1 = faker.hacker ? faker.hacker.phrase() : faker.lorem.sentence();
+  const line2 = faker.company.catchPhrase();
+  
+  return `${line1}\n${line2}`;
+}
 
 /**
  * Fill a text input field after waiting for visibility
@@ -6,9 +36,6 @@
  * @param {string} selector - CSS or data-testid locator
  * @param {string} value - Text to fill
  */
-
-
-
 async function fillInput(page, selector, value) {
   const element = page.locator(selector);
   await element.waitFor({ state: 'visible', timeout: 10000 });
@@ -18,6 +45,8 @@ async function fillInput(page, selector, value) {
 
 /**
  * Click an element after waiting for it to be visible
+ * @param {import('@playwright/test').Page} page
+ * @param {string} selector - CSS or data-testid locator
  */
 async function clickElement(page, selector) {
   const element = page.locator(selector);
@@ -28,6 +57,8 @@ async function clickElement(page, selector) {
 
 /**
  * Highlight an element (useful for debugging)
+ * @param {import('@playwright/test').Page} page
+ * @param {string} selector - CSS or data-testid locator
  */
 async function highlightElement(page, selector) {
   await page.evaluate((sel) => {
@@ -45,10 +76,9 @@ async function highlightElement(page, selector) {
 
 /**
  * Take a screenshot with a timestamp
+ * @param {import('@playwright/test').Page} page
+ * @param {string} name - Screenshot name (optional)
  */
-const fs = require('fs');
-const path = require('path');
-
 async function takeScreenshot(page, name = 'screenshot') {
   const dir = 'screenshots';
   if (!fs.existsSync(dir)) {
@@ -61,9 +91,11 @@ async function takeScreenshot(page, name = 'screenshot') {
   console.log(`Screenshot saved: ${filePath}`);
 }
 
-
 /**
  * Select dropdown option by value, label, or index
+ * @param {import('@playwright/test').Page} page
+ * @param {string} selector - CSS or data-testid locator
+ * @param {string|number} option - Option value, label, or index
  */
 async function selectDropdown(page, selector, option) {
   await highlightElement(page, selector);
@@ -73,62 +105,26 @@ async function selectDropdown(page, selector, option) {
 
 /**
  * Upload a file to input[type="file"]
+ * @param {import('@playwright/test').Page} page
+ * @param {string} selector - CSS or data-testid locator
+ * @param {string} filePath - Path to file to upload
  */
 async function uploadFile(page, selector, filePath) {
   const input = await page.$(selector);
   await input.setInputFiles(filePath);
   console.log(`Uploaded file: ${filePath} to input ${selector}`);
 }
-// helpers.js
 
 /**
- * Asynchronously generates a unique two-line message using faker (ESM).
- * Useful when faker must be dynamically imported in a CommonJS environment.
+ * Wait for the chat to load and verify creator name
+ * @param {import('@playwright/test').Page} page
+ * @param {string} expectedName - The expected creator's name in the chat header
+ * @returns {boolean} - Whether the chat loaded successfully and the creator name was found
  */
-async function generatePhrase() {
-  const { faker } = await import('@faker-js/faker');
-  const line1 = faker.hacker.phrase();
-  const line2 = faker.company.catchPhrase();
-  return `${line1}\n${line2}`;
-}
-
-/**
- * Synchronously generates a unique two-line message.
- * WARNING: Only works if you're using "type": "module" in package.json
- * OR have imported faker elsewhere before calling this.
- */
-let cachedFaker = null;
-
-function generateRandomMessageSync() {
-  if (!cachedFaker) {
-    throw new Error(
-      'faker is not loaded. Use generatePhrase() or modify your setup to allow synchronous imports.'
-    );
-  }
-  const line1 = cachedFaker.hacker.phrase();
-  const line2 = cachedFaker.company.catchPhrase();
-  return `${line1}\n${line2}`;
-}
-
-/**
- * Load faker once for use with sync generator
- */
-async function preloadFaker() {
-  const { faker } = await import('@faker-js/faker');
-  cachedFaker = faker;
-}
-
-module.exports = {
-  generatePhrase,
-  generateRandomMessageSync,
-  preloadFaker
-};
-
-
-// For chat loading wait
 async function waitForChatToLoad(page, expectedName) {
   const chatHeader = page.locator('.chat-header span'); // adjust if needed
   const chatMessages = page.locator('.chat-messages'); // or another solid selector
+  
   try {
     await chatHeader.waitFor({ state: 'visible', timeout: 10000 });
     const headerText = await chatHeader.textContent();
@@ -148,10 +144,7 @@ async function waitForChatToLoad(page, expectedName) {
   }
 }
 
-
-
-
-//  Export all helpers
+// Export all helpers
 module.exports = {
   fillInput,
   clickElement,
@@ -159,19 +152,7 @@ module.exports = {
   takeScreenshot,
   selectDropdown,
   uploadFile,
-  waitForChatToLoad, 
-  generatePhrase,
-  generateRandomMessageSync,
-  preloadFaker,
-
-
-//  Call the function with define the helper then used the fun() by passing parameters
-
-// const helpers = require('../utils/helpers');
-
-// await helpers.fillInput(page, '[data-eid="SignUp/Email"]', 'test@example.com');
-// await helpers.clickElement(page, '[data-eid="SignUp/Create_account_button"]');
-// await helpers.takeScreenshot(page, 'after-submit');
-// await helpers.highlightElement(page, '[data-eid="SignUp/Email"]');
-
+  generateRandomMessage,
+  waitForChatToLoad,
+  generatePhrase
 };

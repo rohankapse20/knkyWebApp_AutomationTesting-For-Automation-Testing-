@@ -306,141 +306,59 @@ async selectSendDetails() {
   }
 }
 
-// async getLastReceivedMsgFromCreator(expectedMessage = '') {
-//   try {
-//     const MAX_RETRIES = 3;
-//     const WAIT_TIME_MS = 2000;
-
-//     const messageLocator = this.page.locator('div.bg-chat-receiver div.px-2.pt-1').last();
-
-//     // Wait for last message bubble to be visible first time
-//     await messageLocator.waitFor({ timeout: 10000 });
-//     console.log('Last received message from creator is visible.');
-
-//     let receivedText = null;
-
-//     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-//       let rawText = '';
-//       try {
-//         rawText = await messageLocator.innerText();
-//       } catch {
-//         rawText = '';
-//       }
-
-//       const fullText = rawText.replace(/\s+/g, ' ').trim(); // Normalize whitespace
-//       console.log(`Attempt ${attempt} - Received text: "${fullText}"`);
-
-//       if (fullText) {
-//         receivedText = fullText;
-//         break; // Got a message, exit retries
-//       }
-
-//       if (attempt === 1) {
-//         // On first failure, scroll down once to try to load message
-//         console.log('Message empty on first attempt. Scrolling down to load messages...');
-//         await this.page.evaluate(() => window.scrollBy(0, window.innerHeight));
-//         await this.page.waitForTimeout(1000);
-//       }
-
-//       if (attempt < MAX_RETRIES) {
-//         console.log(`Retrying after ${WAIT_TIME_MS / 1000}s...`);
-//         await this.page.waitForTimeout(WAIT_TIME_MS);
-//       }
-//     }
-
-//     if (!receivedText) {
-//       throw new Error('No message content retrieved after retries.');
-//     }
-
-//     // Normalize for case-insensitive comparison
-//     const expectedNormalized = expectedMessage.replace(/\s+/g, ' ').trim().toLowerCase();
-//     const receivedNormalized = receivedText.toLowerCase();
-    
-
-//     if (receivedNormalized.includes(expectedNormalized)) {
-//       console.log('Message match successful');
-//     } else {
-//       throw new Error(`Message mismatch.\nExpected: "${expectedNormalized}"\nReceived: "${receivedNormalized}"`);
-//     }
-
-//     return receivedText;
-
-//   } catch (error) {
-//     const screenshotPath = `screenshots/error_get_last_message_${Date.now()}.png`;
-//     await this.page.screenshot({ path: screenshotPath, fullPage: true });
-//     console.error('Error in getLastReceivedMsgFromCreator:', error.message);
-//     console.log(`Screenshot saved at: ${screenshotPath}`);
-//     throw error;
-//   }
-// }
 async getLastReceivedMsgFromCreator(expectedMessage = '') {
   try {
-    const MAX_RETRIES = 3;
-    const WAIT_TIME_MS = 2000;
-
     const messageLocator = this.page.locator('div.bg-chat-receiver div.px-2.pt-1').last();
-
-    // Wait for last message bubble to be visible first time
     await messageLocator.waitFor({ timeout: 10000 });
-    console.log('Last received message from creator is visible.');
+    console.log('Last received message is visible.');
 
-    let receivedText = null;
-
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      let rawText = '';
-      try {
-        rawText = await messageLocator.innerText();
-      } catch {
-        rawText = '';
-      }
-
-      // Normalize whitespace and trim immediately after getting message
-      const fullText = rawText.replace(/\s+/g, ' ').trim();
-      console.log(`Attempt ${attempt} - Received text: "${fullText}"`);
-
-      if (fullText) {
-        receivedText = fullText;
-        break; // Got a message, exit retries
-      }
-
-      if (attempt === 1) {
-        // On first failure, scroll down once to try to load message
-        console.log('Message empty on first attempt. Scrolling down to load messages...');
-        await this.page.evaluate(() => window.scrollBy(0, window.innerHeight));
-        await this.page.waitForTimeout(1000);
-      }
-
-      if (attempt < MAX_RETRIES) {
-        console.log(`Retrying after ${WAIT_TIME_MS / 1000}s...`);
-        await this.page.waitForTimeout(WAIT_TIME_MS);
-      }
+    // Try to scroll to the message
+    try {
+      await messageLocator.scrollIntoViewIfNeeded({ timeout: 3000 });
+      await this.page.waitForTimeout(500);
+    } catch {
+      console.warn('Scroll failed or not needed.');
     }
 
-    if (!receivedText) {
-      throw new Error('No message content retrieved after retries.');
+    const rawText = await messageLocator.innerText();
+    const normalizedReceived = rawText.replace(/\s+/g, ' ').trim().toLowerCase();
+    const normalizedExpected = expectedMessage.replace(/\s+/g, ' ').trim().toLowerCase();
+
+    console.log(`Checking message:\n Received: "${normalizedReceived}"\n Expected: "${normalizedExpected}"`);
+
+    if (!normalizedReceived.includes(normalizedExpected)) {
+      throw new Error('Message does not match expected content.');
     }
 
-    // Normalize expected and received messages for comparison
-    const expectedNormalized = expectedMessage.replace(/\s+/g, ' ').trim().toLowerCase();
-    const receivedNormalized = receivedText.replace(/\s+/g, ' ').trim().toLowerCase();
+    // Highlight the message in UI
+    await this.page.evaluate((text) => {
+      const allMessages = Array.from(document.querySelectorAll('div.bg-chat-receiver div.px-2.pt-1'));
+      const target = allMessages.find(el =>
+        el.innerText?.toLowerCase().replace(/\s+/g, ' ').trim().includes(
+          text.toLowerCase().replace(/\s+/g, ' ').trim()
+        )
+      );
+      if (target) {
+        target.style.outline = '3px solid limegreen';
+        target.style.backgroundColor = '#ffffcc';
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, expectedMessage);
 
-    if (receivedNormalized.includes(expectedNormalized)) {
-      console.log('Message match successful');
-    } else {
-      throw new Error(`Message mismatch.\nExpected: "${expectedNormalized}"\nReceived: "${receivedNormalized}"`);
-    }
-
-    return receivedText;
+    return rawText;
 
   } catch (error) {
     const screenshotPath = `screenshots/error_get_last_message_${Date.now()}.png`;
-    await this.page.screenshot({ path: screenshotPath, fullPage: true });
-    console.error('Error in getLastReceivedMsgFromCreator:', error.message);
-    console.log(`Screenshot saved at: ${screenshotPath}`);
+    if (!this.page.isClosed?.()) {
+      await this.page.screenshot({ path: screenshotPath, fullPage: true });
+      console.error('Error in getLastReceivedMsgFromCreator:', error.message);
+      console.log(`Screenshot saved: ${screenshotPath}`);
+    } else {
+      console.warn('Page is already closed, screenshot not taken.');
+    }
     throw error;
   }
 }
-
 
 async submitForm() {
   try {
