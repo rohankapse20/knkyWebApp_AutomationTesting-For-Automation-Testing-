@@ -4,29 +4,17 @@ const path = require('path');
 const { faker } = require('@faker-js/faker');
 
 /**
- * Generates a random two-line message using faker.hacker or fallback to lorem.sentence()
- * @returns {string} formatted message with two lines.
- */
-function generatePhrase() {
-  // Log to check if faker.hacker is available
-  console.log('faker.hacker:', faker.hacker);
-
-  // Check if faker.hacker exists, then fall back to lorem.sentence()
-  const line1 = faker.hacker && faker.hacker.phrase ? faker.hacker.phrase() : faker.lorem.sentence();
-  const line2 = faker.company.catchPhrase();
-
-  return `${line1}\n${line2}`;
-}
-
-/**
  * Generates a random two-line message using fallback to lorem.sentence() if hacker.phrase() is unavailable
  * @returns {string} formatted message with two lines.
  */
 function generateRandomMessage() {
-  // Fallback to lorem.sentence() if hacker.phrase() is not available
-  const line1 = faker.hacker ? faker.hacker.phrase() : faker.lorem.sentence();
+  // Log to check if faker.hacker is available
+  console.log('faker.hacker:', faker.hacker);
+
+  // Check if faker.hacker exists and fallback to lorem.sentence()
+  const line1 = faker.hacker && faker.hacker.phrase ? faker.hacker.phrase() : faker.lorem.sentence();
   const line2 = faker.company.catchPhrase();
-  
+
   return `${line1}\n${line2}`;
 }
 
@@ -153,6 +141,5 @@ module.exports = {
   selectDropdown,
   uploadFile,
   generateRandomMessage,
-  waitForChatToLoad,
-  generatePhrase
+  waitForChatToLoad
 };
