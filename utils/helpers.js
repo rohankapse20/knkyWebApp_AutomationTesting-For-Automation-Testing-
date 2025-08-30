@@ -1,20 +1,57 @@
 const fs = require('fs');
 const path = require('path');
 
-// helpers.js
+
+// Updated message content for a creator and fan interaction
 function generateRandomMessage() {
-  const subjects = ["The cat", "A dog", "My neighbor", "The teacher", "A developer"];
-  const actions = ["is coding", "is jumping", "is running", "is sleeping", "is eating"];
-  const objects = ["on the roof", "under the bed", "in the kitchen", "in the office", "on the street"];
+  // Subjects
+  const creators = ["The Creator", "The Influencer", "The Streamer", "The Developer", "The Artist", "The Content Creator"];
+  const fans = ["The Fan", "The Follower", "The Subscriber", "The Viewer", "The Supporter", "The Audience"];
 
-  // Line 1: Random combination of subject, action, and object
-  const line1 = `${subjects[Math.floor(Math.random() * subjects.length)]} ${actions[Math.floor(Math.random() * actions.length)]} ${objects[Math.floor(Math.random() * objects.length)]}`;
+  // Actions
+  const creatorActions = [
+    "says: 'Hi, how are you?'",
+    "posted a new picture!",
+    "is live now! Join me!",
+    "uploaded a new video, check it out!",
+    "is sharing something exciting with you!",
+    "just went live for a quick Q&A session.",
+    "is excited about today's stream!",
+  ];
 
-  // Line 2: A similar random sentence but with a fixed ending.
-  const line2 = `${subjects[Math.floor(Math.random() * subjects.length)]} ${actions[Math.floor(Math.random() * actions.length)]} in the park.`;
+  const fanActions = [
+    "replied: 'I love your new post!'",
+    "said: 'Great to see you live!'",
+    "commented: 'I can't wait to join the stream!'",
+    "responded: 'Your content is amazing!'",
+    "sent a message: 'I'm a huge fan!'",
+    "liked the post and commented: 'Awesome work!'",
+  ];
 
-  return `${line1}\n${line2}`;
+  // Objects (places or content)
+  const locations = [
+    "in your latest vlog",
+    "on your profile",
+    "during your live session",
+    "under your new post",
+    "on your stream chat",
+    "on your latest pic",
+    "under the new video",
+  ];
+
+  // Creator message (random selection)
+  const creatorMessage = `${creators[Math.floor(Math.random() * creators.length)]} ${creatorActions[Math.floor(Math.random() * creatorActions.length)]} ${locations[Math.floor(Math.random() * locations.length)]}`;
+
+  // Fan message (random selection)
+  //const fanMessage = `${fans[Math.floor(Math.random() * fans.length)]} ${fanActions[Math.floor(Math.random() * fanActions.length)]}`;
+
+  // Combine both
+  return `${creatorMessage}`;
 }
+
+console.log(generateRandomMessage());
+
+
 
 /**
  * Fill a text input field after waiting for visibility

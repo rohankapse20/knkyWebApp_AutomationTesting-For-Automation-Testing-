@@ -326,13 +326,8 @@ async getLastReceivedMsgFromCreator(expectedMessage = '') {
     await messageLocator.waitFor({ timeout: 10000 });
     console.log('Last received message is visible.');
 
-    // Try to scroll to the message
-    try {
-      await messageLocator.scrollIntoViewIfNeeded({ timeout: 3000 });
-      await this.page.waitForTimeout(500);
-    } catch {
-      console.warn('Scroll failed or not needed.');
-    }
+    // Explicit wait before scroll to ensure content is fully loaded
+    await this.page.waitForTimeout(500); // Adjust as necessary for your application
 
     const rawText = await messageLocator.innerText();
     const normalizedReceived = rawText.replace(/\s+/g, ' ').trim().toLowerCase();
@@ -344,7 +339,7 @@ async getLastReceivedMsgFromCreator(expectedMessage = '') {
       throw new Error('Message does not match expected content.');
     }
 
-    // Highlight the message in UI
+    // Highlight the message in UI with better visibility and smooth scroll
     await this.page.evaluate((text) => {
       const allMessages = Array.from(document.querySelectorAll('div.bg-chat-receiver div.px-2.pt-1'));
       const target = allMessages.find(el =>
@@ -353,15 +348,28 @@ async getLastReceivedMsgFromCreator(expectedMessage = '') {
         )
       );
       if (target) {
-        target.style.outline = '3px solid limegreen';
-        target.style.backgroundColor = '#ffffcc';
+        // Apply strong highlighting
+        target.style.outline = '5px solid limegreen'; // Thicker outline
+        target.style.backgroundColor = '#ffffcc'; // Light yellow background
+        target.style.padding = '5px'; // Optional: Add padding for better clarity
+
+        // Scroll to the element, making sure it is centered in the viewport
         target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Additional check to make sure the message is in view
+        if (target.getBoundingClientRect().top < 0 || target.getBoundingClientRect().bottom > window.innerHeight) {
+          window.scrollBy(0, -50); // Adjust scroll if needed, in case it's out of view
+        }
       }
     }, expectedMessage);
+
+    // Wait after scroll to ensure visibility is updated
+    await this.page.waitForTimeout(1000); // Adjust as necessary for smooth scrolling
 
     return rawText;
 
   } catch (error) {
+    // Enhanced error handling and screenshot capture
     const screenshotPath = `screenshots/error_get_last_message_${Date.now()}.png`;
     if (!this.page.isClosed?.()) {
       await this.page.screenshot({ path: screenshotPath, fullPage: true });
@@ -370,9 +378,10 @@ async getLastReceivedMsgFromCreator(expectedMessage = '') {
     } else {
       console.warn('Page is already closed, screenshot not taken.');
     }
-    throw error;
+    throw error; // Re-throw the error after logging and screenshot
   }
 }
+
 
 async submitForm() {
   try {
