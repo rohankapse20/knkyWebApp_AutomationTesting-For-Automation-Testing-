@@ -1,4 +1,8 @@
-require('dotenv').config({ path: './.env' }); // Load environment variables from .env
+require('dotenv').config({ path: './.env' });// Load environment variables from .env
+
+// const BASE_URL = process.env.BASE_URL;
+// const CREATOR_EMAIL = process.env.CREATOR_EMAIL;
+// // You can also use these environment variables in your test
 
 const { test, expect } = require('@playwright/test');
 const { getTestData } = require('../utils/readExcel');
@@ -21,9 +25,9 @@ test.setTimeout(60000); // Increase timeout for slow tests
 // Helper function to handle error logging and screenshot
 async function handleError(page, index, step, error) {
   console.error(`${step} failed: ${error.message}`);
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const screenshotPath = `error_${step.toLowerCase().replace(/\s+/g, '_')}_${index + 1}_${timestamp}.png`;
+  // Capture a screenshot in case of an error
   if (!page.isClosed()) {
+    const screenshotPath = `error_${step.toLowerCase().replace(/\s+/g, '_')}_${index + 1}.png`;
     await page.screenshot({ path: screenshotPath });
     console.log(`Screenshot saved: ${screenshotPath}`);
   }
@@ -31,7 +35,7 @@ async function handleError(page, index, step, error) {
 }
 
 // Test Loop
-for (const [index, dataRow] of chatData.entries()) {
+chatData.forEach((dataRow, index) => {
   test(`Mass message test #${index + 1} - ${dataRow.CreatorEmail}`, async ({ page }) => {
     const base = new BasePage(page);
     const signin = new SigninPage(page);
@@ -116,7 +120,7 @@ for (const [index, dataRow] of chatData.entries()) {
       await handleError(page, index, 'Submit Form', error);
     }
   });
-}
+});
 
 
 const delays = [0, 2000, 5000, 7000, 10000];
