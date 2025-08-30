@@ -1,18 +1,20 @@
-require('dotenv').config({ path: './.env' });// Load environment variables from .env
-
-// const BASE_URL = process.env.BASE_URL;
-// const CREATOR_EMAIL = process.env.CREATOR_EMAIL;
-// // You can also use these environment variables in your test
-
 const { test, expect } = require('@playwright/test');
+const fs = require('fs');
+const path = require('path');
+const { generateRandomMessage } = require('../utils/helpers');
 const { getTestData } = require('../utils/readExcel');
 const { BasePage } = require('../pages/BasePage');
 const { SigninPage } = require('../pages/SigninPage');
 const { ChatPage } = require('../pages/ChatPage');
-const { generatePhrase } = require('../utils/helpers');
 
-const path = require('path');
-const fs = require('fs');
+require('dotenv').config({ path: './.env' });
+
+// Ensure environment variables are loaded
+const BASE_URL = process.env.BASE_URL;
+const CREATOR_EMAIL = process.env.CREATOR_EMAIL;
+if (!BASE_URL || !CREATOR_EMAIL) {
+  throw new Error("Missing required environment variables: BASE_URL or CREATOR_EMAIL");
+}
 
 // Data from Excel
 const chatData = getTestData('./data/testData.xlsx', 'massMsgSend_Data');
@@ -34,20 +36,19 @@ async function handleError(page, index, step, error) {
   throw error; // Rethrow the error to mark the test as failed
 }
 
-// Test Loop
+// Test Loop for Mass Message Sending
 chatData.forEach((dataRow, index) => {
   test(`Mass message test #${index + 1} - ${dataRow.CreatorEmail}`, async ({ page }) => {
     const base = new BasePage(page);
     const signin = new SigninPage(page);
     const chat = new ChatPage(page);
 
-    // Generate dynamic message
     let phrase;
     try {
-      phrase = await generatePhrase();
+      phrase = generateRandomMessage(); // Generate random message
       console.log(`Generated phrase: ${phrase}`);
     } catch (error) {
-      await handleError(page, index, 'Generate Phrase', error);
+      await handleError(page, index, 'Generate Random Message', error);
     }
 
     // Write message to JSON for fan verification
@@ -59,7 +60,7 @@ chatData.forEach((dataRow, index) => {
       await handleError(page, index, 'Write Message to JSON', error);
     }
 
-    // Try login flow
+    // Login and Send Mass Message Process
     try {
       console.log('Navigating to login page...');
       await base.navigate();
@@ -80,7 +81,7 @@ chatData.forEach((dataRow, index) => {
       await handleError(page, index, 'Login Confirmation', error);
     }
 
-    // Try navigating to chat
+    // Navigate to chat
     try {
       await chat.navigateToChat();
       await chat.getStartedMassOption();
@@ -101,7 +102,7 @@ chatData.forEach((dataRow, index) => {
       await handleError(page, index, 'Send Mass Message', error);
     }
 
-    // Select send details
+    // Select send details and submit
     try {
       await chat.selectSendDetails();
       console.log('Selected send details for the message.');
@@ -109,7 +110,6 @@ chatData.forEach((dataRow, index) => {
       await handleError(page, index, 'Select Send Details', error);
     }
 
-    // Submit and verify success
     try {
       await chat.submitForm();
       await chat.waitForSuccessPopup();
@@ -121,7 +121,6 @@ chatData.forEach((dataRow, index) => {
     }
   });
 });
-
 
 const delays = [0, 2000, 5000, 7000, 10000];
 

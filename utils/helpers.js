@@ -1,19 +1,17 @@
 const fs = require('fs');
 const path = require('path');
-// Import faker once here
-const { faker } = require('@faker-js/faker');
 
-/**
- * Generates a random two-line message using fallback to lorem.sentence() if hacker.phrase() is unavailable
- * @returns {string} formatted message with two lines.
- */
+// helpers.js
 function generateRandomMessage() {
-  // Log to check if faker.hacker is available
-  console.log('faker.hacker:', faker.hacker);
+  const subjects = ["The cat", "A dog", "My neighbor", "The teacher", "A developer"];
+  const actions = ["is coding", "is jumping", "is running", "is sleeping", "is eating"];
+  const objects = ["on the roof", "under the bed", "in the kitchen", "in the office", "on the street"];
 
-  // Check if faker.hacker exists and fallback to lorem.sentence()
-  const line1 = faker.hacker && faker.hacker.phrase ? faker.hacker.phrase() : faker.lorem.sentence();
-  const line2 = faker.company.catchPhrase();
+  // Line 1: Random combination of subject, action, and object
+  const line1 = `${subjects[Math.floor(Math.random() * subjects.length)]} ${actions[Math.floor(Math.random() * actions.length)]} ${objects[Math.floor(Math.random() * objects.length)]}`;
+
+  // Line 2: A similar random sentence but with a fixed ending.
+  const line2 = `${subjects[Math.floor(Math.random() * subjects.length)]} ${actions[Math.floor(Math.random() * actions.length)]} in the park.`;
 
   return `${line1}\n${line2}`;
 }

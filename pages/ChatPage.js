@@ -248,31 +248,45 @@ async chatWithCreator(retryCount = 0) {
     await this.page.waitForTimeout(2000);
   }
 
-
 async sendMassMessageFromData({ type, content }) {
-  let messageToSend = content;
+  let messageToSend = content || generateRandomMessage(); // Use provided content or generate random message
   try {
+    // Ensure that 'Get Started' chat option is visible
     if (await this.getStartedMassChat.isVisible({ timeout: 5000 })) {
-      await this.getStartedMassChat.click();
+      await this.getStartedMassChat.click();  // Click 'Get Started'
       console.log('Clicked Get Started');
       
+      // If content is not provided, a random message is used
       if (!content) {
-        messageToSend = generateRandomMessage();
+        console.log('No content provided, using randomly generated message');
       }
       
+      // Fill in the message text area
       await this.messageText.fill(messageToSend);
       console.log('Filled message text:', messageToSend);
-
-      // Save sent message to a file for verification in fan test
-      const savePath = path.resolve(__dirname, '../data/lastSentMessage.json'); // adjust path as needed
-      fs.writeFileSync(savePath, JSON.stringify({ message: messageToSend }), 'utf-8');
-      console.log(`Saved sent message to ${savePath}`);
+      
+      // Save the sent message for verification (fan test)
+      const savePath = path.resolve(__dirname, '../data/lastSentMessage.json');  // Adjust path as needed
+      try {
+        fs.writeFileSync(savePath, JSON.stringify({ message: messageToSend }, null, 2), 'utf-8');
+        console.log(`Saved sent message to ${savePath}`);
+      } catch (error) {
+        console.error('Failed to save the sent message to file:', error.message);
+        await this.page.screenshot({ path: `error_save_message_${type}.png` }); // Take screenshot on failure
+        throw new Error(`Failed to save message to file: ${error.message}`);
+      }
+    } else {
+      console.error('Get Started option not visible within timeout');
+      await this.page.screenshot({ path: `error_get_started_not_visible_${type}.png` });
+      throw new Error('Get Started option not visible');
     }
-    return messageToSend;
+
+    return messageToSend;  // Return the message that was sent
   } catch (error) {
+    // Log the error with detailed information
     console.error(`Error sending mass ${type} message:`, error.message);
-    await this.page.screenshot({ path: `error_send_mass_${type}.png` });
-    throw error;
+    await this.page.screenshot({ path: `error_send_mass_${type}.png` }); // Take a screenshot when there's an error
+    throw error;  // Rethrow the error to fail the test
   }
 }
 
