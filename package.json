@@ -10,13 +10,15 @@
     "test": "tests"
   },
   "dependencies": {
-    "@faker-js/faker": "^10.0.0",
+    "@faker-js/faker": "^5.5.3",
     "allure-js-commons": "^3.3.3",
+    "chance": "^1.1.13",
     "charenc": "^0.0.2",
     "crypt": "^0.0.2",
     "is-buffer": "^1.1.6",
     "md5": "^2.3.0",
-    "playwright-core": "^1.54.2"
+    "playwright-core": "^1.54.2",
+    "random-words": "^2.0.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",
