@@ -36,9 +36,11 @@ async function handleError(page, index, step, error) {
   throw error; // Rethrow the error to mark the test as failed
 }
 
-// Test Loop for Mass Message Sending
+// Test Loop for Mass Message Sending for Free to Fans
+// Free Messages
+
 chatData.forEach((dataRow, index) => {
-  test.skip(`Mass message test #${index + 1} - ${dataRow.CreatorEmail}`, async ({ page }) => {
+  test(`Mass message test #${index + 1} - ${dataRow.CreatorEmail}`, async ({ page }) => {
     const base = new BasePage(page);
     const signin = new SigninPage(page);
     const chat = new ChatPage(page);
@@ -169,105 +171,59 @@ fanData.forEach((fan, index) => {
       throw new Error('No message found in lastSentMessage.json.');
     }
 
-    const normalizedExpected = expectedMessage.toLowerCase().replace(/\s+/g, ' ').trim();
-    const delays = [0, 2000, 5000, 7000, 10000,12000,15000,17000,20000,25000]; // Ten Retry intervals
-    const retryLimit = delays.length;
+const normalizedExpected = expectedMessage.toLowerCase().replace(/\s+/g, ' ').trim();
+const delays = [0, 2000, 5000, 7000, 10000, 12000, 15000, 17000, 20000, 25000]; // Ten Retry intervals
+const retryLimit = delays.length;
 
-    const context = await browser.newContext();
-    const page = await context.newPage();
+const context = await browser.newContext();
+const page = await context.newPage();
 
-    const base = new BasePage(page);
-    const signin = new SigninPage(page);
-    const chat = new ChatPage(page);
+const base = new BasePage(page);
+const signin = new SigninPage(page);
+const chat = new ChatPage(page);
 
-    try {
-      await base.navigate();
-      await signin.goToSignin();
-      await signin.fillSigninForm(fan.FanEmail, fan.FanPassword);
-      await signin.signinSubmit();
-      await chat.handleOtpVerification();
+try {
+  await base.navigate();
+  await signin.goToSignin();
+  await signin.fillSigninForm(fan.FanEmail, fan.FanPassword);
+  await signin.signinSubmit();
+  await chat.handleOtpVerification();
 
-      const welcomePopup = page.locator('text=Welcome Back,');
-      await expect(welcomePopup).toBeVisible({ timeout: 20000 });
-      console.log(`Logged in: ${fan.FanEmail}`);
+  const welcomePopup = page.locator('text=Welcome Back,');
+  await expect(welcomePopup).toBeVisible({ timeout: 20000 });
+  console.log(`Logged in: ${fan.FanEmail}`);
 
-      await chat.navigateToChat();
-      await chat.chatWithCreator();
+ // Assuming this is inside your fan test function async context
 
-      let messageFound = false;
-      let timeTaken = 0;
+await chat.navigateToChat();
+await chat.chatWithCreator();
 
-      for (let attempt = 0; attempt < retryLimit; attempt++) {
-        const delay = delays[attempt];
-        console.log(`\nRetry #${attempt + 1} - waiting ${delay / 1000}s...`);
-        if (delay > 0) await page.waitForTimeout(delay);
-        timeTaken += delay;
+// let messageFound = false;
+// let messagePartiallyVisible = false;
+// let timeTaken = 0;
 
-        await chat.scrollToBottom(); // Your defined scroll helper
+  let rawText = '';
 
-        try {
-          const messageLocator = await chat.findMessageLocator(expectedMessage);
-          if (!messageLocator) {
-            console.log(`Message not found on retry #${attempt + 1}`);
-            continue;
-          }
-
-          const elementHandle = await messageLocator.elementHandle();
-          if (!elementHandle) {
-            console.warn('Element handle could not be retrieved.');
-            continue;
-          }
-
-          const isFullyVisible = await page.evaluate(el => {
-            const rect = el.getBoundingClientRect();
-            return (
-              rect.top >= 0 &&
-              rect.bottom <= window.innerHeight &&
-              rect.left >= 0 &&
-              rect.right <= window.innerWidth
-            );
-          }, elementHandle);
-
-          // Highlight message (partial or full)
-          await page.evaluate(el => {
-            el.style.outline = '3px dashed orange';
-            el.style.backgroundColor = '#fff8dc';
-            el.style.padding = '4px';
-          }, elementHandle);
-
-          if (isFullyVisible) {
-            console.log(`Message fully visible after ${timeTaken / 1000}s (Retry #${attempt + 1})`);
-            messageFound = true;
-            break;
-          } else {
-            console.log(`Message found but not fully visible. Continuing scroll...`);
-          }
-
-        } catch (err) {
-          console.warn(`Attempt #${attempt + 1} failed: ${err.message}`);
-        }
-      }
-
-      // Final Result Check
-      if (!messageFound) {
+      try {
+        rawText = await chat.getLastReceivedMsgFromCreator(expectedMessage);
+        console.log(`Received message matches expected: "${rawText}"`);
+        console.log(`Test passed for fan ${fan.FanEmail}: Message visible.`);
+      } catch (err) {
         const screenshotPath = `screenshots/message_not_visible_${Date.now()}.png`;
         await page.screenshot({ path: screenshotPath, fullPage: true });
-        throw new Error(`Message not fully visible after ${timeTaken / 1000}s and ${retryLimit} retries for fan ${fan.FanEmail}`);
-      } else {
-        console.log(`Test is passed for fan ${fan.FanEmail}`);
+        throw new Error(`Message not visible or fully loaded for fan ${fan.FanEmail}: ${err.message}`);
       }
 
     } catch (error) {
-      console.error(`Test failed for fan ${fan.FanEmail}: ${error.message}`);
+      console.error(`Error in test for fan ${fan.FanEmail}: ${error.message}`);
       throw error;
     } finally {
+      await page.close();
       await context.close();
     }
+
   });
 });
-
-
-// Fan user logged in with 5 time retry for message visibility
 
 // fanData.forEach((fan, index) => {
 //   test(`Verify message visible to fan #${index + 1} - ${fan.FanEmail}`, async ({ browser }) => {

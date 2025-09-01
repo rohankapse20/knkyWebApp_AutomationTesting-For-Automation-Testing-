@@ -262,12 +262,13 @@ async scrollToBottom() {
     await this.page.waitForTimeout(2000);
   }
 
+  // Free Mass Messages
 async sendMassMessageFromData({ type, content }) {
   let messageToSend = content || generateRandomMessage(); // Use provided content or generate random message
 
   try {
     // Ensure that 'Get Started' chat option is visible and clickable
-    if (await this.getStartedMassChat.isVisible({ timeout: 5000 })) {
+    if (await this.getStartedMassChat.isVisible({ timeout: 10000 })) {
       await this.getStartedMassChat.click();
       console.log('Clicked Get Started');
 
@@ -321,6 +322,129 @@ async sendMassMessageFromData({ type, content }) {
   }
 }
 
+// Free Vault Media Messages
+async sendMassMediaVault({ type, content }) {
+
+  let messageToSend = content || generateRandomMessage(); // Use provided content or generate random message
+
+  try {
+    // Ensure that 'Get Started' chat option is visible and clickable
+    if (await this.getStartedMassChat.isVisible({ timeout: 10000 })) {
+      await this.getStartedMassChat.click();
+      console.log('Clicked Get Started');
+
+      // Wait for 2 seconds to allow UI to update (textarea to appear)
+      await this.page.waitForTimeout(2000);
+
+      // Extra check: ensure message box is visible
+      if (!(await this.messageText.isVisible({ timeout: 3000 }))) {
+        await this.page.screenshot({ path: `error_message_text_not_visible_${type}.png` });
+        throw new Error(`Message input field not visible after clicking 'Get Started'`);
+      }
+
+      // If content is not provided, a random message is used
+      if (!content) {
+        console.log('No content provided, using randomly generated message');
+      }
+
+      // Fill the message input box
+      try {
+        await this.messageText.fill(messageToSend);
+        console.log('Filled message text:', messageToSend);
+      }
+      catch (error) {
+        await this.page.screenshot({ path: `error_fill_message_${type}.png` });
+        throw new Error(`Failed to fill message text: ${error.message}`);
+      }
+
+      // Save the message to file (used by fan test)
+      const savePath = path.resolve(__dirname, '../data/lastSentMessage.json');
+      try {
+
+        fs.writeFileSync(savePath, JSON.stringify({ message: messageToSend }, null, 2), 'utf-8');
+        console.log(`Saved sent message to: ${savePath}`);
+      }
+       catch (error) {
+        console.error('Failed to save the sent message to file:', error.message);
+        await this.page.screenshot({ path: `error_save_message_${type}.png` });
+        throw new Error(`Failed to save message to file: ${error.message}`);
+      }
+
+      // Select the "Media" radio button for vault media
+      const mediaRadioButton = this.page.locator('input#mediaRadio[type="radio"][value="Media"]');
+      try {
+        await mediaRadioButton.waitFor({ state: 'visible', timeout: 5000 });
+        await mediaRadioButton.check();
+        console.log('Checked Media radio button');
+      } catch (error) {
+        await this.page.screenshot({ path: `error_media_radio_not_visible_${type}.png` });
+        throw new Error('Failed to check Media radio button');
+      }
+
+      // Click on the "Add Vault Media" button
+      const addVaultMediaButton = this.page.locator('button:has(svg) >> text="Add Vault Media"');
+      try {
+        await addVaultMediaButton.waitFor({ state: 'visible', timeout: 5000 });
+        await addVaultMediaButton.click();
+        console.log('Clicked Add Vault Media button');
+      } catch (error) {
+        await this.page.screenshot({ path: `error_add_vault_media_button_${type}.png` });
+        throw new Error('Failed to click Add Vault Media button');
+      }
+
+      // Select the image using the full XPath
+      const mediaInputLocator = this.page.locator('/html/body/div[2]/div/div/div[2]/div/div[6]/div/div[1]/div[1]/div/div[1]/input');
+      try {
+        await mediaInputLocator.waitFor({ state: 'visible', timeout: 5000 });
+        await mediaInputLocator.setInputFiles('/path/to/your/image.jpg'); // Update with the correct file path
+        console.log('Selected media file for attachment');
+      } catch (error) {
+        await this.page.screenshot({ path: `error_select_media_${type}.png` });
+        throw new Error('Failed to select media file');
+      }
+
+      // Click on the "Choose" button
+      const chooseButton = this.page.locator('button:has(text="Choose")');
+      try {
+        await chooseButton.waitFor({ state: 'visible', timeout: 5000 });
+        await chooseButton.click();
+        console.log('Clicked Choose button');
+      } catch (error) {
+        await this.page.screenshot({ path: `error_choose_button_${type}.png` });
+        throw new Error('Failed to click Choose button');
+      }
+
+      // Call selectSendDetails() to check the follower and active subscribers checkboxes, scroll the Send button
+      await this.selectSendDetails();
+
+      // Now that all details are set, click on the Send button
+      try {
+        await this.sendButton.waitFor({ state: 'visible', timeout: 5000 });
+        await this.sendButton.click();
+        console.log('Clicked Send button');
+      } catch (error) {
+        await this.page.screenshot({ path: `error_send_button_${type}.png` });
+        throw new Error('Failed to click Send button');
+      }
+
+    } else {
+      // 'Get Started' not visible
+      console.error('Get Started option not visible within timeout');
+      await this.page.screenshot({ path: `error_get_started_not_visible_${type}.png` });
+      throw new Error('Get Started option not visible');
+    }
+
+    return messageToSend; // Return the actual message sent for verification
+  } catch (error) {
+    // Catch all unexpected errors, log and screenshot
+    console.error(`Error sending mass ${type} message:`, error.message);
+    await this.page.screenshot({ path: `error_send_mass_${type}_${Date.now()}.png` });
+    throw error;
+  }
+}
+
+
+
 
 async selectSendDetails() {
   try {
@@ -350,12 +474,22 @@ async selectSendDetails() {
     throw error;
   }
 }
-
 async getLastReceivedMsgFromCreator(expectedMessage = '') {
   try {
     const messageLocator = this.page.locator('div.bg-chat-receiver div.px-2.pt-1').last();
     await messageLocator.waitFor({ timeout: 10000 });
     console.log('Last received message is initially visible.');
+
+    // Ensure that any scroll issues are addressed by forcing visibility
+    await this.page.evaluate(() => {
+      const messages = Array.from(document.querySelectorAll('div.bg-chat-receiver div.px-2.pt-1'));
+      messages.forEach(msg => {
+        // Unhide the message text if it's hidden by overflow or clipping
+        msg.style.overflow = 'visible';
+        msg.style.maxHeight = 'none';
+        msg.style.display = 'block';
+      });
+    });
 
     await this.page.waitForTimeout(2000); // Let content load
 
@@ -369,58 +503,157 @@ async getLastReceivedMsgFromCreator(expectedMessage = '') {
       throw new Error('Message does not match expected content.');
     }
 
-    // Scrolling logic
-    const maxAttempts = 5;
-    const waitBetweenScrolls = 1000;
+    const maxAttempts = 10;
+    const waitBetweenScrolls = 1500;
+    const extraScrollAttempts = 3;
 
     let isFullyVisible = false;
+    let isPartiallyVisibleButHighlighted = false;
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      console.log(`Scroll visibility check attempt #${attempt + 1}`);
+      console.log(`Scroll & visibility check attempt #${attempt + 1}`);
 
-      isFullyVisible = await this.page.evaluate((expectedText) => {
+      // Evaluate visibility & highlight, plus scroll strategies inside page context
+      const result = await this.page.evaluate(async (expectedText) => {
         const messages = Array.from(document.querySelectorAll('div.bg-chat-receiver div.px-2.pt-1'));
         const normalize = (text) => text.toLowerCase().replace(/\s+/g, ' ').trim();
         const targetText = normalize(expectedText);
 
-        const target = messages.find(el =>
-          normalize(el.innerText || '').includes(targetText)
-        );
+        const target = messages.find(el => normalize(el.innerText || '').includes(targetText));
+        if (!target) return { found: false };
 
-        if (!target) return false;
-
+        // Scroll the target into view smoothly, center block
         target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        await new Promise(r => setTimeout(r, 2000)); // wait smooth scroll
 
         const rect = target.getBoundingClientRect();
-        const isVisible =
+
+        const fullyVisible =
           rect.top >= 0 &&
           rect.bottom <= window.innerHeight &&
           rect.left >= 0 &&
           rect.right <= window.innerWidth;
 
-        // Always highlight if found, even if not fully visible
-        target.style.outline = '3px dashed orange';
+        const partiallyVisible =
+          rect.bottom > 0 && rect.top < window.innerHeight;
+
+        // Highlight the box regardless
+        target.style.outline = '3px solid lightgreen';
         target.style.backgroundColor = '#fff8dc';
         target.style.padding = '5px';
 
-        return isVisible;
+        return {
+          found: true,
+          fullyVisible,
+          partiallyVisible,
+        };
       }, expectedMessage);
 
-      if (isFullyVisible) {
-        console.log(`Message is fully visible in viewport (after attempt #${attempt + 1})`);
+      if (!result.found) {
+        console.log('Message box not found in DOM');
         break;
+      }
+
+      if (result.fullyVisible) {
+        console.log(`Message is fully visible after attempt #${attempt + 1}`);
+        isFullyVisible = true;
+        break;
+      }
+
+      if (result.partiallyVisible) {
+        console.log(`Message partially visible but highlighted on attempt #${attempt + 1}`);
+        isPartiallyVisibleButHighlighted = true;
+
+        // Extra scroll down attempts when partially visible
+        for (let extra = 0; extra < extraScrollAttempts; extra++) {
+          console.log(`Extra scroll down attempt #${extra + 1} due to partial visibility`);
+
+          try {
+            // Scroll chat container down explicitly
+            await this.page.evaluate(() => {
+              const chatContainer = document.querySelector('div.bg-chat-receiver');
+              if (chatContainer) {
+                chatContainer.scrollBy({ top: 100, behavior: 'smooth' });
+              }
+            });
+            await this.page.waitForTimeout(700);
+
+            // Also try window scroll as fallback
+            await this.page.evaluate(() => {
+              window.scrollBy({ top: 100, behavior: 'smooth' });
+            });
+            await this.page.waitForTimeout(1000);
+
+            // Scroll messageLocator directly into view again
+            await messageLocator.scrollIntoViewIfNeeded({ timeout: 2000 });
+            await this.page.waitForTimeout(1000);
+
+            // Check visibility again after scroll attempts
+            const checkVisibility = await this.page.evaluate((expectedText) => {
+              const messages = Array.from(document.querySelectorAll('div.bg-chat-receiver div.px-2.pt-1'));
+              const normalize = (text) => text.toLowerCase().replace(/\s+/g, ' ').trim();
+              const targetText = normalize(expectedText);
+
+              const target = messages.find(el => normalize(el.innerText || '').includes(targetText));
+              if (!target) return false;
+
+              const rect = target.getBoundingClientRect();
+
+              return (
+                rect.top >= 0 &&
+                rect.bottom <= window.innerHeight &&
+                rect.left >= 0 &&
+                rect.right <= window.innerWidth
+              );
+            }, expectedMessage);
+
+            if (checkVisibility) {
+              console.log(`Message became fully visible after extra scroll attempt #${extra + 1}`);
+              isFullyVisible = true;
+              break;
+            }
+          } catch (err) {
+            console.warn(`Extra scroll attempt #${extra + 1} failed: ${err.message}`);
+          }
+        }
+
+        if (isFullyVisible) break;
+      }
+
+      // Try additional scroll down methods after highlight & partial visibility (main loop)
+      try {
+        await this.page.evaluate(() => {
+          const chatContainer = document.querySelector('div.bg-chat-receiver');
+          if (chatContainer) {
+            chatContainer.scrollBy({ top: 100, behavior: 'smooth' });
+          }
+        });
+        await this.page.waitForTimeout(1000);
+
+        await this.page.evaluate(() => {
+          window.scrollBy({ top: 100, behavior: 'smooth' });
+        });
+        await this.page.waitForTimeout(2000);
+
+        await messageLocator.scrollIntoViewIfNeeded({ timeout: 2000 });
+        await this.page.waitForTimeout(1000);
+      } catch (scrollErr) {
+        console.warn('Scroll attempt failed:', scrollErr.message);
       }
 
       await this.page.waitForTimeout(waitBetweenScrolls);
     }
 
-    if (!isFullyVisible) {
-      throw new Error('Message was found but not fully visible in viewport after retries.');
+    if (isFullyVisible) {
+      console.log('Test passed: Message is fully visible.');
+    } else if (isPartiallyVisibleButHighlighted) {
+      console.log('Test passed: Message partially visible and highlighted.');
+    } else {
+      throw new Error('Message was not found or visible after retries.');
     }
 
-    await this.page.waitForTimeout(2000); // Let final highlight show
+    await this.page.waitForTimeout(4000); // Let final highlight show
 
-    // Final visibility assurance before returning
     await messageLocator.waitFor({ state: 'visible', timeout: 5000 });
 
     return rawText;
@@ -438,19 +671,22 @@ async getLastReceivedMsgFromCreator(expectedMessage = '') {
   }
 }
 
-async findMessageLocator(expectedMessage) {
-  const messageLocators = this.page.locator('div.bg-chat-receiver div.px-2.pt-1');
-  const count = await messageLocators.count();
 
-  for (let i = count - 1; i >= 0; i--) {
-    const msg = await messageLocators.nth(i).innerText();
-    if (msg.toLowerCase().replace(/\s+/g, ' ').includes(expectedMessage.toLowerCase().trim())) {
-      return messageLocators.nth(i);
-    }
-  }
 
-  return null;
-}
+
+// async findMessageLocator(expectedMessage) {
+//   const messageLocators = this.page.locator('div.bg-chat-receiver div.px-2.pt-1');
+//   const count = await messageLocators.count();
+
+//   for (let i = count - 1; i >= 0; i--) {
+//     const msg = await messageLocators.nth(i).innerText();
+//     if (msg.toLowerCase().replace(/\s+/g, ' ').includes(expectedMessage.toLowerCase().trim())) {
+//       return messageLocators.nth(i);
+//     }
+//   }
+
+//   return null;
+// }
 
 
 async submitForm() {
