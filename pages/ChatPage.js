@@ -69,16 +69,16 @@ async chatWithCreator(retryCount = 0) {
     console.log(`[${retryCount}] Starting chatWithCreator`);
     await this.page.waitForTimeout(1000);
 
-    let isChatEmpty = await emptyChatText.isVisible({ timeout: 3000 }).catch(() => false);
+    let isChatEmpty = await emptyChatText.isVisible({ timeout: 5000 }).catch(() => false);
     if (isChatEmpty) {
       console.log(`[${retryCount}] Chat list empty, performing search...`);
-      await searchInput.waitFor({ state: 'visible', timeout: 5000 });
+      await searchInput.waitFor({ state: 'visible', timeout: 10000 });
       await searchInput.fill('');
       await this.page.waitForTimeout(300);
       await searchInput.fill(creatorName);
       await this.page.waitForTimeout(1500);
 
-      const suggestionVisible = await suggestionOption.isVisible({ timeout: 1000 }).catch(() => false);
+      const suggestionVisible = await suggestionOption.isVisible({ timeout: 2000 }).catch(() => false);
       if (suggestionVisible) {
         await suggestionOption.click({ force: true });
         await this.page.waitForTimeout(500);
@@ -126,6 +126,20 @@ async chatWithCreator(retryCount = 0) {
     throw new Error(`chatWithCreator failed for ${creatorName}: ${err.message}. Screenshot: ${screenshotPath}`);
   }
 }
+
+
+async scrollToBottom() {
+  await this.page.evaluate(() => {
+    const chatContainer = document.querySelector('.h-100.overflow-y-auto');
+    if (chatContainer) {
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    } else {
+      console.warn('Chat container not found: .h-100.overflow-y-auto');
+    }
+  });
+}
+
+
 
 // async chatWithCreator(retryCount = 0) {
 //   const creatorName = 'PlayfulMistress';
@@ -250,43 +264,60 @@ async chatWithCreator(retryCount = 0) {
 
 async sendMassMessageFromData({ type, content }) {
   let messageToSend = content || generateRandomMessage(); // Use provided content or generate random message
+
   try {
-    // Ensure that 'Get Started' chat option is visible
+    // Ensure that 'Get Started' chat option is visible and clickable
     if (await this.getStartedMassChat.isVisible({ timeout: 5000 })) {
-      await this.getStartedMassChat.click();  // Click 'Get Started'
+      await this.getStartedMassChat.click();
       console.log('Clicked Get Started');
-      
+
+      // Wait for 2 seconds to allow UI to update (textarea to appear)
+      await this.page.waitForTimeout(2000);
+
+      // Extra check: ensure message box is visible
+      if (!(await this.messageText.isVisible({ timeout: 3000 }))) {
+        await this.page.screenshot({ path: `error_message_text_not_visible_${type}.png` });
+        throw new Error(`Message input field not visible after clicking 'Get Started'`);
+      }
+
       // If content is not provided, a random message is used
       if (!content) {
         console.log('No content provided, using randomly generated message');
       }
-      
-      // Fill in the message text area
-      await this.messageText.fill(messageToSend);
-      console.log('Filled message text:', messageToSend);
-      
-      // Save the sent message for verification (fan test)
-      const savePath = path.resolve(__dirname, '../data/lastSentMessage.json');  // Adjust path as needed
+
+      // Fill the message input box
+      try {
+        await this.messageText.fill(messageToSend);
+        console.log('Filled message text:', messageToSend);
+      } catch (error) {
+        await this.page.screenshot({ path: `error_fill_message_${type}.png` });
+        throw new Error(`Failed to fill message text: ${error.message}`);
+      }
+
+      // Save the message to file (used by fan test)
+      const savePath = path.resolve(__dirname, '../data/lastSentMessage.json');
       try {
         fs.writeFileSync(savePath, JSON.stringify({ message: messageToSend }, null, 2), 'utf-8');
-        console.log(`Saved sent message to ${savePath}`);
+        console.log(`Saved sent message to: ${savePath}`);
       } catch (error) {
         console.error('Failed to save the sent message to file:', error.message);
-        await this.page.screenshot({ path: `error_save_message_${type}.png` }); // Take screenshot on failure
+        await this.page.screenshot({ path: `error_save_message_${type}.png` });
         throw new Error(`Failed to save message to file: ${error.message}`);
       }
+
     } else {
+      // 'Get Started' not visible
       console.error('Get Started option not visible within timeout');
       await this.page.screenshot({ path: `error_get_started_not_visible_${type}.png` });
       throw new Error('Get Started option not visible');
     }
 
-    return messageToSend;  // Return the message that was sent
+    return messageToSend; // Return the actual message sent for verification
   } catch (error) {
-    // Log the error with detailed information
+    // Catch all unexpected errors, log and screenshot
     console.error(`Error sending mass ${type} message:`, error.message);
-    await this.page.screenshot({ path: `error_send_mass_${type}.png` }); // Take a screenshot when there's an error
-    throw error;  // Rethrow the error to fail the test
+    await this.page.screenshot({ path: `error_send_mass_${type}_${Date.now()}.png` });
+    throw error;
   }
 }
 
@@ -319,76 +350,108 @@ async selectSendDetails() {
     throw error;
   }
 }
+
 async getLastReceivedMsgFromCreator(expectedMessage = '') {
   try {
     const messageLocator = this.page.locator('div.bg-chat-receiver div.px-2.pt-1').last();
     await messageLocator.waitFor({ timeout: 10000 });
-    console.log('Last received message is visible.');
+    console.log('Last received message is initially visible.');
 
-    // Explicit wait before scroll to ensure content is fully loaded
-    await this.page.waitForTimeout(2000); // Adjust this wait time based on application loading time
+    await this.page.waitForTimeout(2000); // Let content load
 
     const rawText = await messageLocator.innerText();
     const normalizedReceived = rawText.replace(/\s+/g, ' ').trim().toLowerCase();
     const normalizedExpected = expectedMessage.replace(/\s+/g, ' ').trim().toLowerCase();
 
-    console.log(`Checking message:\n Received: "${normalizedReceived}"\n Expected: "${normalizedExpected}"`);
+    console.log(`Checking Received Message:\n Received: "${normalizedReceived}"\n Expected: "${normalizedExpected}"`);
 
     if (!normalizedReceived.includes(normalizedExpected)) {
       throw new Error('Message does not match expected content.');
     }
 
-    // Wait before highlighting and scrolling
-    await this.page.waitForTimeout(2000); // Adding some wait time before scrolling
+    // Scrolling logic
+    const maxAttempts = 5;
+    const waitBetweenScrolls = 1000;
 
-    // Highlight the message in UI with better visibility and smooth scroll
-    await this.page.evaluate((text) => {
-      const allMessages = Array.from(document.querySelectorAll('div.bg-chat-receiver div.px-2.pt-1'));
-      const target = allMessages.find(el =>
-        el.innerText?.toLowerCase().replace(/\s+/g, ' ').trim().includes(
-          text.toLowerCase().replace(/\s+/g, ' ').trim()
-        )
-      );
-      if (target) {
-        // Apply strong highlighting
-        target.style.outline = '5px solid limegreen'; // Thicker outline
-        target.style.backgroundColor = '#ffffcc'; // Light yellow background
-        target.style.padding = '5px'; // Optional: Add padding for better clarity
+    let isFullyVisible = false;
 
-        // Scroll to the element, making sure it is centered in the viewport
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      console.log(`Scroll visibility check attempt #${attempt + 1}`);
+
+      isFullyVisible = await this.page.evaluate((expectedText) => {
+        const messages = Array.from(document.querySelectorAll('div.bg-chat-receiver div.px-2.pt-1'));
+        const normalize = (text) => text.toLowerCase().replace(/\s+/g, ' ').trim();
+        const targetText = normalize(expectedText);
+
+        const target = messages.find(el =>
+          normalize(el.innerText || '').includes(targetText)
+        );
+
+        if (!target) return false;
+
         target.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-        // Additional check to make sure the message is in view
-        if (target.getBoundingClientRect().top < 0 || target.getBoundingClientRect().bottom > window.innerHeight) {
-          window.scrollBy(0, -50); // Adjust scroll if needed, in case it's out of view
-        }
+        const rect = target.getBoundingClientRect();
+        const isVisible =
+          rect.top >= 0 &&
+          rect.bottom <= window.innerHeight &&
+          rect.left >= 0 &&
+          rect.right <= window.innerWidth;
+
+        // Always highlight if found, even if not fully visible
+        target.style.outline = '3px dashed orange';
+        target.style.backgroundColor = '#fff8dc';
+        target.style.padding = '5px';
+
+        return isVisible;
+      }, expectedMessage);
+
+      if (isFullyVisible) {
+        console.log(`Message is fully visible in viewport (after attempt #${attempt + 1})`);
+        break;
       }
-    }, expectedMessage);
 
-    // Wait after scrolling to ensure the message is in the viewport and adjustments are made
-    await this.page.waitForTimeout(2000); // Give some time for scroll to complete and visibility changes
+      await this.page.waitForTimeout(waitBetweenScrolls);
+    }
 
-    // Wait to ensure the highlighted message is rendered properly
-    await this.page.waitForTimeout(2000); // Adjust based on UI responsiveness
+    if (!isFullyVisible) {
+      throw new Error('Message was found but not fully visible in viewport after retries.');
+    }
 
-    // Wait until the message is actually visible after the scroll (in case it's still transitioning)
-    await messageLocator.waitFor({ state: 'visible', timeout: 5000 }); // Wait until it's fully visible
+    await this.page.waitForTimeout(2000); // Let final highlight show
+
+    // Final visibility assurance before returning
+    await messageLocator.waitFor({ state: 'visible', timeout: 5000 });
 
     return rawText;
 
   } catch (error) {
-    // Enhanced error handling and screenshot capture
     const screenshotPath = `screenshots/error_get_last_message_${Date.now()}.png`;
     if (!this.page.isClosed?.()) {
       await this.page.screenshot({ path: screenshotPath, fullPage: true });
       console.error('Error in getLastReceivedMsgFromCreator:', error.message);
       console.log(`Screenshot saved: ${screenshotPath}`);
     } else {
-      console.warn('Page is already closed, screenshot not taken.');
+      console.warn('Page already closed, screenshot skipped.');
     }
-    throw error; // Re-throw the error after logging and screenshot
+    throw error;
   }
 }
+
+async findMessageLocator(expectedMessage) {
+  const messageLocators = this.page.locator('div.bg-chat-receiver div.px-2.pt-1');
+  const count = await messageLocators.count();
+
+  for (let i = count - 1; i >= 0; i--) {
+    const msg = await messageLocators.nth(i).innerText();
+    if (msg.toLowerCase().replace(/\s+/g, ' ').includes(expectedMessage.toLowerCase().trim())) {
+      return messageLocators.nth(i);
+    }
+  }
+
+  return null;
+}
+
 
 async submitForm() {
   try {
