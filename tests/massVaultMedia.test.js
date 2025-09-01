@@ -91,74 +91,77 @@ chatData.forEach((dataRow, index) => {
       await handleError(page, index, 'Navigate to Chat', error);
     }
 
-    // Send Mass Message
-    const messageType = dataRow.MessageType?.toLowerCase();
-    console.log(`Sending Mass Message for type: ${messageType}`);
-    let sentMessage = '';
-    try {
-      sentMessage = await chat.sendMassMediaVault({
-        type: messageType,
-        content: phrase, // Use generated phrase as message content
-      });
-      await page.waitForTimeout(1000); // Buffer wait after typing message
-    } catch (error) {
-      await handleError(page, index, 'Send Mass Message', error);
-    }
+// Send Mass Message
+const messageType = dataRow.MessageType?.toLowerCase();
+console.log(`Sending Mass Message for type: ${messageType}`);
+let sentMessage = '';
 
-    // Select send details and submit
-    try {
-      await chat.sendMassMessageFromData();
-      console.log('Selected send details for the message.');
-    } catch (error) {
-      await handleError(page, index, 'Select Send Details', error);
-    }
+try {
+  // Sending the Mass Media Vault message
+  sentMessage = await chat.sendMassMediaVault({
+    type: messageType,
+    content: phrase, // Use the generated phrase as message content
+  });
+  await page.waitForTimeout(1000); // Buffer wait after typing message
 
-    // Submit the Mass message form
-    try {
-      // Click submit
-      await chat.submitForm();
+} catch (error) {
+  await handleError(page, index, 'Send Mass Message', error);
+}
 
-      // Wait for success popup to appear
-      await chat.waitForSuccessPopup({ timeout: 15000 });
+// Select send details and submit
+try {
+  await chat.sendMassMessageFromData();
+  console.log('Selected send details for the message.');
+} catch (error) {
+  await handleError(page, index, 'Select Send Details', error);
+}
 
-      // Try closing the success popup
-      try {
-        await chat.closeSuccessPopup();
-        console.log('Closed success popup');
-      } catch (err) {
-        const path = `screenshots/error_closing_popup_${Date.now()}.png`;
-        await page.screenshot({ path, fullPage: true });
-        throw new Error(`Failed to click close on success popup. Screenshot: ${path}`);
-      }
+// Submit the Mass message form
+try {
+  // Click submit
+  await chat.submitForm();
 
-      // Wait 2 seconds after closing
-      await page.waitForTimeout(2000);
+  // Wait for success popup to appear
+  await chat.waitForSuccessPopup({ timeout: 15000 });
 
-      // Explicitly check if popup is still visible
-      let isStillVisible = false;
-      try {
-        isStillVisible = await chat.successPopup?.isVisible({ timeout: 3000 });
-      } catch {
-        isStillVisible = false; // popup likely not found anymore
-      }
+  // Try closing the success popup
+  try {
+    await chat.closeSuccessPopup();
+    console.log('Closed success popup');
+  } catch (err) {
+    const path = `screenshots/error_closing_popup_${Date.now()}.png`;
+    await page.screenshot({ path, fullPage: true });
+    throw new Error(`Failed to click close on success popup. Screenshot: ${path}`);
+  }
 
-      // If the popup is still visible, fail the test
-      if (isStillVisible) {
-        const path = `screenshots/error_popup_still_visible_${Date.now()}.png`;
-        await page.screenshot({ path, fullPage: true });
-        throw new Error(`Success popup still visible after close. Screenshot: ${path}`);
-      }
+  // Wait for 2 seconds after closing
+  await page.waitForTimeout(2000);
 
-      // If no issues, test passes
-      console.log(`Mass ${messageType} message sent successfully by ${dataRow.CreatorEmail}`);
-      expect(true).toBeTruthy();
+  // Explicitly check if the popup is still visible
+  let isStillVisible = false;
+  try {
+    isStillVisible = await chat.successPopup?.isVisible({ timeout: 3000 });
+  } catch {
+    isStillVisible = false; // Popup likely not found anymore
+  }
 
-    } catch (error) {
-      await handleError(page, index, 'Submit Form', error);
-    }
+  // If the popup is still visible, fail the test
+  if (isStillVisible) {
+    const path = `screenshots/error_popup_still_visible_${Date.now()}.png`;
+    await page.screenshot({ path, fullPage: true });
+    throw new Error(`Success popup still visible after close. Screenshot: ${path}`);
+  }
+
+  // If no issues, the test passes
+  console.log(`Mass ${messageType} message sent successfully by ${dataRow.CreatorEmail}`);
+  expect(true).toBeTruthy();
+
+} catch (error) {
+  await handleError(page, index, 'Submit Form', error);
+}
+  
   });
 });
-
 
 fanData.forEach((fan, index) => {
   test.skip(`Verify Vault Media message visible to fan #${index + 1} - ${fan.FanEmail}`, async ({ browser }) => {

@@ -322,7 +322,7 @@ async sendMassMessageFromData({ type, content }) {
   }
 }
 
-// Free Vault Media Messages
+// Free Media Vault Messages
 async sendMassMediaVault({ type, content }) {
 
   let messageToSend = content || generateRandomMessage(); // Use provided content or generate random message
@@ -392,20 +392,45 @@ async sendMassMediaVault({ type, content }) {
         throw new Error('Failed to click Add Vault Media button');
       }
 
-      // Select the image using the full XPath
-      const mediaInputLocator = this.page.locator('/html/body/div[2]/div/div/div[2]/div/div[6]/div/div[1]/div[1]/div/div[1]/input');
-      try {
-        await mediaInputLocator.waitFor({ state: 'visible', timeout: 5000 });
-        await mediaInputLocator.setInputFiles('/path/to/your/image.jpg'); // Update with the correct file path
-        console.log('Selected media file for attachment');
-      } catch (error) {
-        await this.page.screenshot({ path: `error_select_media_${type}.png` });
-        throw new Error('Failed to select media file');
-      }
+// Select the radio button using the full XPath
+//const mediaInputLocator = this.page.locator("(//div[@class='d-flex align-items-center ps-2 gap-2 position-relative']/img)[1]");
+const mediaInputLocator = this.page.locator("div.d-flex.align-items-center.ps-2.gap-2.position-relative img + input[type='radio']");
 
-      // Click on the "Choose" button
-      const chooseButton = this.page.locator('button:has(text="Choose")');
-      try {
+
+try {
+  // Wait for the radio button to be visible (explicit wait with a longer timeout)
+  await mediaInputLocator.waitFor({ state: 'visible', timeout: 10000 }); // Increased timeout to 10 seconds
+  
+  // Check if the radio button is already checked
+  const isChecked = await mediaInputLocator.isChecked();
+  if (!isChecked) {
+    // Click the radio button if it's not already checked
+    await mediaInputLocator.click();
+    console.log('Radio button clicked successfully');
+  } else {
+    console.log('Radio button is already selected');
+  }
+
+  // Wait for the "Add Vault Media" button or the next required step
+  const addVaultMediaButton = await this.page.locator("//button[contains(text(), 'Add Vault Media')]");
+  await addVaultMediaButton.waitFor({ state: 'visible', timeout: 5000 });
+  await addVaultMediaButton.click();
+
+  // Select the media file for attachment
+  const fileInputLocator = await this.page.locator('input[type="file"]'); // Locate the file input field
+  await fileInputLocator.setInputFiles('/path/to/your/image.jpg'); // Update with the correct file path
+  console.log('Selected media file for attachment');
+  
+} catch (error) {
+  // Take a screenshot if an error occurs
+  await this.page.screenshot({ path: `error_select_media_${type}.png` });
+  console.error('Error occurred while selecting the radio button or file:', error);
+  throw new Error('Failed to select media file');
+}
+
+// Click on the "Choose" button
+  const chooseButton = this.page.locator('button:has(text="Choose")');
+    try {
         await chooseButton.waitFor({ state: 'visible', timeout: 5000 });
         await chooseButton.click();
         console.log('Clicked Choose button');
@@ -442,9 +467,6 @@ async sendMassMediaVault({ type, content }) {
     throw error;
   }
 }
-
-
-
 
 async selectSendDetails() {
   try {
