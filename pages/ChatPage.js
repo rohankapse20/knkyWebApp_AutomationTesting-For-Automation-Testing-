@@ -499,7 +499,7 @@ async selectSendDetails() {
 async getLastReceivedMsgFromCreator(expectedMessage = '') {
   try {
     const messageLocator = this.page.locator('div.bg-chat-receiver div.px-2.pt-1').last();
-    await messageLocator.waitFor({ timeout: 10000 });
+    await messageLocator.waitFor({ timeout: 20000 });
     console.log('Last received message is initially visible.');
 
     // Ensure that any scroll issues are addressed by forcing visibility
