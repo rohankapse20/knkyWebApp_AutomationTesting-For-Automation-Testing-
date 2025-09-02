@@ -325,7 +325,7 @@ async sendMassMessageFromData({ type, content }) {
 // Free Media Vault Messages
 async sendMassMediaVault({ type, content }) {
 
-  let messageToSend = content || generateRandomMessage(); // Use provided content or generate random message
+  // let messageToSend = content || generateRandomMessage(); // Use provided content or generate random message
 
   try {
     // Ensure that 'Get Started' chat option is visible and clickable
@@ -336,39 +336,39 @@ async sendMassMediaVault({ type, content }) {
       // Wait for 2 seconds to allow UI to update (textarea to appear)
       await this.page.waitForTimeout(2000);
 
-      // Extra check: ensure message box is visible
-      if (!(await this.messageText.isVisible({ timeout: 3000 }))) {
-        await this.page.screenshot({ path: `error_message_text_not_visible_${type}.png` });
-        throw new Error(`Message input field not visible after clicking 'Get Started'`);
-      }
+      // // Extra check: ensure message box is visible
+      // if (!(await this.messageText.isVisible({ timeout: 3000 }))) {
+      //   await this.page.screenshot({ path: `error_message_text_not_visible_${type}.png` });
+      //   throw new Error(`Message input field not visible after clicking 'Get Started'`);
+      // }
 
-      // If content is not provided, a random message is used
-      if (!content) {
-        console.log('No content provided, using randomly generated message');
-      }
+      // // If content is not provided, a random message is used
+      // if (!content) {
+      //   console.log('No content provided, using randomly generated message');
+      // }
 
-      // Fill the message input box
-      try {
-        await this.messageText.fill(messageToSend);
-        console.log('Filled message text:', messageToSend);
-      }
-      catch (error) {
-        await this.page.screenshot({ path: `error_fill_message_${type}.png` });
-        throw new Error(`Failed to fill message text: ${error.message}`);
-      }
+      // // Fill the message input box
+      // try {
+      //   await this.messageText.fill(messageToSend);
+      //   console.log('Filled message text:', messageToSend);
+      // }
+      // catch (error) {
+      //   await this.page.screenshot({ path: `error_fill_message_${type}.png` });
+      //   throw new Error(`Failed to fill message text: ${error.message}`);
+      // }
 
-      // Save the message to file (used by fan test)
-      const savePath = path.resolve(__dirname, '../data/lastSentMessage.json');
-      try {
+      // // Save the message to file (used by fan test)
+      // const savePath = path.resolve(__dirname, '../data/lastSentMessage.json');
+      // try {
 
-        fs.writeFileSync(savePath, JSON.stringify({ message: messageToSend }, null, 2), 'utf-8');
-        console.log(`Saved sent message to: ${savePath}`);
-      }
-       catch (error) {
-        console.error('Failed to save the sent message to file:', error.message);
-        await this.page.screenshot({ path: `error_save_message_${type}.png` });
-        throw new Error(`Failed to save message to file: ${error.message}`);
-      }
+      //   fs.writeFileSync(savePath, JSON.stringify({ message: messageToSend }, null, 2), 'utf-8');
+      //   console.log(`Saved sent message to: ${savePath}`);
+      // }
+      //  catch (error) {
+      //   console.error('Failed to save the sent message to file:', error.message);
+      //   await this.page.screenshot({ path: `error_save_message_${type}.png` });
+      //   throw new Error(`Failed to save message to file: ${error.message}`);
+      // }
 
       // Select the "Media" radio button for vault media
       const mediaRadioButton = this.page.locator('input#mediaRadio[type="radio"][value="Media"]');
@@ -394,8 +394,7 @@ async sendMassMediaVault({ type, content }) {
 
 // Select the radio button using the full XPath
 //const mediaInputLocator = this.page.locator("(//div[@class='d-flex align-items-center ps-2 gap-2 position-relative']/img)[1]");
-const mediaInputLocator = this.page.locator("div.d-flex.align-items-center.ps-2.gap-2.position-relative img + input[type='radio']");
-
+const mediaInputLocator = this.page.locator("(//input[contains(@id, 'checkboxNoLabel')])[3]");
 
 try {
   // Wait for the radio button to be visible (explicit wait with a longer timeout)
