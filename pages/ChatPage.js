@@ -17,7 +17,7 @@ class ChatPage {
     this.addVaultMediaBtn = page.locator("//button[contains(., 'Add Vault Media')]");
     this.chooseButton = page.locator("//button[normalize-space(text())='Choose']");
     this.followersCheckbox = page.locator("//input[@id='followers']");
-    this.sendButton = this.page.locator('button.btn.btn-primary:has-text("Send")').first();
+
 
     this.testVersAccept = page.locator("[data-eid='Home_WithoutLoggedIn/Testversion_btn']");
     this.chatoption = page.locator("//img[contains(@src, 'chat') and @width='28']");
@@ -241,9 +241,7 @@ async sendMassMediaVault({ type }) {
     if (await this.getStartedMassChat.isVisible({ timeout: 15000 })) {
       await this.getStartedMassChat.click();
       console.log('Clicked Get Started');
-
-      // Wait for UI to update
-      await this.page.waitForTimeout(2000);
+      await this.page.waitForTimeout(2000); // wait for UI update
 
       // Select the "Media" radio button for vault media
       const mediaRadioButton = this.page.locator('input#mediaRadio[type="radio"][value="Media"]');
@@ -251,6 +249,7 @@ async sendMassMediaVault({ type }) {
         await mediaRadioButton.waitFor({ state: 'visible', timeout: 5000 });
         await mediaRadioButton.check();
         console.log('Checked Media radio button');
+        await this.page.waitForTimeout(3000); // ⏳ Explicit wait after checking radio
       } catch (error) {
         await this.page.screenshot({ path: `error_media_radio_not_visible_${type}.png` });
         throw new Error('Failed to check Media radio button');
@@ -267,11 +266,10 @@ async sendMassMediaVault({ type }) {
         throw new Error('Failed to click Add Vault Media button');
       }
 
-      // Select the vault media file (radio checkbox)
+      // Select the vault media file (checkbox/radio)
       const mediaInputLocator = this.page.locator("(//input[contains(@id, 'checkboxNoLabel')])[3]");
       try {
         await mediaInputLocator.waitFor({ state: 'visible', timeout: 10000 });
-
         const isChecked = await mediaInputLocator.isChecked();
         if (!isChecked) {
           await mediaInputLocator.click();
@@ -279,81 +277,108 @@ async sendMassMediaVault({ type }) {
         } else {
           console.log('Radio button is already selected');
         }
+        await this.page.waitForTimeout(3000); // ⏳ Wait after selecting media
       } catch (error) {
         await this.page.screenshot({ path: `error_select_media_${type}.png` });
         console.error('Error occurred while selecting the media file:', error);
         throw new Error('Failed to select media file');
       }
 
-      // Click on the "Choose" button
+      // Click the "Choose" button
       const chooseButton = this.page.locator('button:has-text("Choose")');
       try {
         await safeClick(this.page, chooseButton, `error_choose_button_${type}`);
         console.log('Clicked Choose button successfully');
+        await this.page.waitForTimeout(3000); // ⏳ Wait for next section
       } catch (error) {
         console.error('Error clicking Choose button:', error.message);
         throw new Error('Failed to click Choose button');
       }
 
-      // Check "Followers" and "Active Subscribers", and scroll Send button
+      // Check "Followers" and "Active Subscribers"
       await this.selectSendDetails();
 
-      // Select Pay-to-view option and fill the price
-      try {
+      const payToViewRadio = this.page.locator('input#payView[type="radio"][value="Pay-to-view"]');
+      const priceInputField = this.page.locator('input[placeholder="Enter price to pay"][type="number"]');
 
-         const payToViewRadio = this.page.locator('input#payView[type="radio"][value="Pay-to-view"]');
-         const priceInputField = this.page.locator('input[placeholder="Enter price to pay"][type="number"]');
-         
-        // Wait for radio and click it
+      // Select Pay-to-view and enter price
+      try {
+        const container = this.page.locator('.container.p-3.bg-white.rounded');
+        await container.evaluate(el => el.scrollTop = el.scrollHeight);
+        await this.page.waitForTimeout(2000);
+
         await payToViewRadio.waitFor({ state: 'visible', timeout: 5000 });
         await payToViewRadio.check();
         console.log('Checked Pay-to-view radio button');
+        await this.page.waitForTimeout(3000); // ⏳ Wait after checking Pay-to-view
 
-        // Wait for price input to become visible and enabled
         await priceInputField.waitFor({ state: 'visible', timeout: 5000 });
+        await priceInputField.scrollIntoViewIfNeeded();
+        await this.page.waitForTimeout(2000);
+        await this.page.mouse.wheel(0, 700);
+        await this.page.waitForTimeout(500);
 
         const isDisabled = await priceInputField.isDisabled();
         if (isDisabled) {
-          throw new Error('Price input field is disabled even after selecting Pay-to-view');
+          throw new Error('Price input field is disabled');
         }
 
-        // Clear and enter "5"
-        await priceInputField.fill('5');
+        await priceInputField.focus();
+        await priceInputField.fill('');
+        await priceInputField.type('5', { delay: 100 });
         console.log('Entered price 5 into Pay-to-view input field');
+        await this.page.waitForTimeout(3000); // ⏳ Wait after input
       } catch (error) {
-        await this.page.screenshot({ path: `error_pay_to_view_setup_${type}.png` });
+        await this.page.screenshot({ path: `error_pay_to_view_setup_${type}.png`, fullPage: true });
         throw new Error(`Failed to set Pay-to-view price: ${error.message}`);
       }
 
-      // Wait for Send button to be enabled and click it
-      try {
-        await this.sendButton.waitFor({ state: 'visible', timeout: 5000 });
+      // Wait for Send button and Retry Logic
+      const MAX_RETRIES = 5;
+      let attempt = 0;
+      let sendClicked = false;
 
-        // Retry until enabled
-        await this.page.waitForFunction(
-          (el) => !el.disabled,
-          this.sendButton,
-          { timeout: 5000 }
-        );
+      while (attempt < MAX_RETRIES && !sendClicked) {
+        try {
+          attempt++;
+          console.log(`Attempting to locate and click Send button (Attempt ${attempt})`);
+          await this.page.waitForTimeout(3000);
 
-        await this.sendButton.click();
-        console.log('Clicked Send button');
-      } catch (error) {
-        await this.page.screenshot({ path: `error_send_button_${type}.png` });
-        throw new Error('Failed to click Send button after price input');
+          this.sendButton = this.page.locator("button[data-sentry-component='ActionButton']:has-text('Send'):not([disabled])").first();
+          const count = await this.sendButton.count();
+          if (count === 0) throw new Error("Send button not found in DOM");
+
+          const isVisible = await this.sendButton.isVisible();
+          const isEnabled = await this.sendButton.isEnabled();
+
+          if (!isVisible || !isEnabled) {
+            console.warn(`Send button not ready (visible: ${isVisible}, enabled: ${isEnabled})`);
+            continue;
+          }
+
+          await this.sendButton.scrollIntoViewIfNeeded();
+          await this.page.waitForTimeout(3000);
+          await this.sendButton.click({ timeout: 10000 });
+          console.log('Clicked Send button successfully');
+          sendClicked = true;
+        } catch (error) {
+          console.error(`Send button click failed on attempt ${attempt}: ${error.message}`);
+          await this.page.screenshot({ path: `send_button_attempt_${attempt}_${type}.png`, fullPage: true });
+          if (attempt === MAX_RETRIES) {
+            throw new Error('Failed to click Send button after max retries');
+          }
+        }
       }
-
     } else {
-      await this.page.screenshot({ path: `error_get_started_not_visible_${type}.png` });
+      await this.page.screenshot({ path: `error_get_started_not_visible_${type}.png`, fullPage: true });
       throw new Error('Get Started option not visible');
     }
   } catch (error) {
     console.error(`Error sending mass ${type} vault media:`, error.message);
-    await this.page.screenshot({ path: `error_send_mass_${type}_${Date.now()}.png` });
+    await this.page.screenshot({ path: `error_send_mass_${type}_${Date.now()}.png`, fullPage: true });
     throw error;
   }
 }
-
 
 async selectSendDetails() {
   try {
@@ -368,11 +393,6 @@ async selectSendDetails() {
     await expect(activeSubscribersCheckbox).toBeEnabled();
     await activeSubscribersCheckbox.check();
     console.log('Checked active subscribers');
-
-
-    // Scroll the Send button into view (or page down if needed)
-    await this.sendButton.scrollIntoViewIfNeeded();
-    console.log('Scrolled to Send button');
 
     // Wait a little for UI to stabilize
     await this.page.waitForTimeout(1000);

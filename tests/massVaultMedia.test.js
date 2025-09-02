@@ -40,6 +40,8 @@ async function handleError(page, index, step, error) {
 // Free Vault Media Messages
 chatData.forEach((dataRow, index) => {
   test(`Mass Vault Media Send test #${index + 1} - ${dataRow.CreatorEmail}`, async ({ page }) => {
+    test.setTimeout(300000);  //  Set timeout to 5 minutes
+
     const base = new BasePage(page);
     const signin = new SigninPage(page);
     const chat = new ChatPage(page);
