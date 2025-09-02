@@ -166,6 +166,30 @@ async function waitForChatToLoad(page, expectedName) {
   }
 }
 
+async function safeClick(page, locator, screenshotName = 'click_error') {
+  try {
+    await locator.waitFor({ state: 'attached', timeout: 5000 });
+
+    if (!await locator.isVisible()) {
+      await locator.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(500); // small delay after scroll
+    }
+
+    await locator.waitFor({ state: 'visible', timeout: 5000 });
+
+    if (!await locator.isEnabled()) {
+      throw new Error('Element is not enabled');
+    }
+
+    await locator.click();
+  } catch (error) {
+    await page.screenshot({ path: `${screenshotName}.png` });
+    throw new Error(`Click failed on element: ${error.message}`);
+  }
+}
+
+
+
 // Export all helpers
 module.exports = {
   fillInput,
@@ -175,5 +199,6 @@ module.exports = {
   selectDropdown,
   uploadFile,
   generateRandomMessage,
-  waitForChatToLoad
+  waitForChatToLoad,
+  safeClick
 };

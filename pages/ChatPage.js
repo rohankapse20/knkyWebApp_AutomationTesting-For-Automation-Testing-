@@ -4,6 +4,8 @@ const fs = require('fs');
 
 const { generateRandomMessage } = require('../utils/helpers.js');
 
+const { safeClick } = require('../utils/helpers.js');
+
 class ChatPage {
   constructor(page) {
     this.page = page;
@@ -23,6 +25,8 @@ class ChatPage {
   
     this.successPopup = this.page.locator("//h2[normalize-space()='Message sent successfully']");
     this.successCloseButton = this.page.locator("//button[contains(@class, 'swal2-confirm') and normalize-space(text())='Close']");
+
+ 
   }
 
 async navigateToChat() {
@@ -139,99 +143,6 @@ async scrollToBottom() {
   });
 }
 
-
-
-// async chatWithCreator(retryCount = 0) {
-//   const creatorName = 'PlayfulMistress';
-//   const MAX_RETRIES = 1;
-
-//   const searchInput = this.page.locator('#chat-search-box input[type="search"]');
-//   const emptyChatText = this.page.locator('text="Chat list is empty :("');
-//   const suggestionOption = this.page.locator(`//span[@class="profile-last-message" and normalize-space(text())="${creatorName}"]`);
-//   const ChatItem = this.page.locator(
-//     `//div[contains(@class, 'chatList_chatItem__')][.//span[normalize-space(text())='${creatorName}']]`
-//   );
-
-//   try {
-//     console.log(`[${retryCount}] Starting chatWithCreator`);
-//     await this.page.waitForTimeout(1000); // Ensure panel is ready
-
-//     // Double check: Is chat list actually empty?
-//     let isChatEmpty = await emptyChatText.isVisible({ timeout: 3000 }).catch(() => false);
-//     if (isChatEmpty) {
-//       console.log(`[${retryCount}] 'Chat list is empty :(' is visible. Re-checking after short wait...`);
-//       await this.page.waitForTimeout(1500);
-//       isChatEmpty = await emptyChatText.isVisible({ timeout: 1000 }).catch(() => false);
-//     }
-
-//     if (isChatEmpty) {
-//       // === Case: Chat is confirmed empty ===
-//       console.log(`[${retryCount}] Chat list confirmed empty. Proceeding with search.`);
-
-//       await searchInput.waitFor({ state: 'visible', timeout: 5000 });
-//       await searchInput.click({ force: true });
-//       await searchInput.fill('');
-//       await this.page.waitForTimeout(300);
-//       await searchInput.fill(creatorName);
-//       await this.page.waitForTimeout(1500);
-
-//       const isSuggestionVisible = await suggestionOption.isVisible({ timeout: 1000 }).catch(() => false);
-//       if (isSuggestionVisible) {
-//         console.log(`[${retryCount}] Suggestion found. Clicking...`);
-//         await suggestionOption.click({ force: true });
-//         await this.page.waitForTimeout(500);
-//       } else {
-//         throw new Error(`[${retryCount}] No suggestion visible after search for "${creatorName}"`);
-//       }
-
-//     } else {
-//       // === Case: Chat list is NOT empty → Search visually in chat list ===
-//       console.log(`[${retryCount}] Chat list not empty. Using fallback direct search.`);
-
-//       let isVisible = await ChatItem.first().isVisible().catch(() => false);
-//       if (!isVisible) {
-//         console.log(`[${retryCount}] Creator not visible, scrolling...`);
-//         for (let scrollTry = 0; scrollTry < 10; scrollTry++) {
-//           await this.page.mouse.wheel(0, 300);
-//           await this.page.waitForTimeout(300);
-//           isVisible = await ChatItem.first().isVisible().catch(() => false);
-//           if (isVisible) break;
-//         }
-//       }
-
-//       if (isVisible) {
-//         console.log(`[${retryCount}] Found creator chat item. Clicking...`);
-//         await ChatItem.first().scrollIntoViewIfNeeded();
-//         await ChatItem.first().click({ force: true });
-//         await this.page.waitForTimeout(2000);
-//       } else {
-//         throw new Error(`[${retryCount}] Could not find chat for "${creatorName}" in fallback list.`);
-//       }
-//     }
-
-//     // === Wait for chat to load ===
-//     const chatLoaded = await this.waitForChatToLoad(creatorName);
-//     if (!chatLoaded) {
-//       if (retryCount < MAX_RETRIES) {
-//         console.warn(`[${retryCount}] Chat did not load. Retrying...`);
-//         await this.page.waitForTimeout(2000);
-//         return await this.chatWithCreator(retryCount + 1);
-//       } else {
-//         const screenshotPath = path.resolve(`screenshots/chat-failure-${Date.now()}.png`);
-//         await this.page.screenshot({ path: screenshotPath, fullPage: true });
-//         throw new Error(`Chat load failed after retry. Screenshot saved at: ${screenshotPath}`);
-//       }
-//     }
-
-//     console.log(`[${retryCount}] Chat loaded successfully with ${creatorName}`);
-
-//   } catch (err) {
-//     const screenshotPath = path.resolve(`screenshots/chat-error-${Date.now()}.png`);
-//     await this.page.screenshot({ path: screenshotPath, fullPage: true });
-//     throw new Error(`chatWithCreator failed for ${creatorName}: ${err.message}. Screenshot: ${screenshotPath}`);
-//   }
-// }
-
   async getStartedMassOption()
   {
     await this.getStartedMassChat.waitFor({ state: 'visible', timeout: 10000 });
@@ -268,7 +179,7 @@ async sendMassMessageFromData({ type, content }) {
 
   try {
     // Ensure that 'Get Started' chat option is visible and clickable
-    if (await this.getStartedMassChat.isVisible({ timeout: 10000 })) {
+    if (await this.getStartedMassChat.isVisible({ timeout: 15000 })) {
       await this.getStartedMassChat.click();
       console.log('Clicked Get Started');
 
@@ -295,16 +206,16 @@ async sendMassMessageFromData({ type, content }) {
         throw new Error(`Failed to fill message text: ${error.message}`);
       }
 
-      // Save the message to file (used by fan test)
-      const savePath = path.resolve(__dirname, '../data/lastSentMessage.json');
-      try {
-        fs.writeFileSync(savePath, JSON.stringify({ message: messageToSend }, null, 2), 'utf-8');
-        console.log(`Saved sent message to: ${savePath}`);
-      } catch (error) {
-        console.error('Failed to save the sent message to file:', error.message);
-        await this.page.screenshot({ path: `error_save_message_${type}.png` });
-        throw new Error(`Failed to save message to file: ${error.message}`);
-      }
+      // // Save the message to file (used by fan test)
+      // const savePath = path.resolve(__dirname, '../data/lastSentMessage.json');
+      // try {
+      //   fs.writeFileSync(savePath, JSON.stringify({ message: messageToSend }, null, 2), 'utf-8');
+      //   console.log(`Saved sent message to: ${savePath}`);
+      // } catch (error) {
+      //   console.error('Failed to save the sent message to file:', error.message);
+      //   await this.page.screenshot({ path: `error_save_message_${type}.png` });
+      //   throw new Error(`Failed to save message to file: ${error.message}`);
+      // }
 
     } else {
       // 'Get Started' not visible
@@ -322,53 +233,17 @@ async sendMassMessageFromData({ type, content }) {
   }
 }
 
-// Free Media Vault Messages
-async sendMassMediaVault({ type, content }) {
 
-  // let messageToSend = content || generateRandomMessage(); // Use provided content or generate random message
-
+// Paid Media Vault Messages
+async sendMassMediaVault({ type }) {
   try {
     // Ensure that 'Get Started' chat option is visible and clickable
-    if (await this.getStartedMassChat.isVisible({ timeout: 10000 })) {
+    if (await this.getStartedMassChat.isVisible({ timeout: 15000 })) {
       await this.getStartedMassChat.click();
       console.log('Clicked Get Started');
 
-      // Wait for 2 seconds to allow UI to update (textarea to appear)
+      // Wait for UI to update
       await this.page.waitForTimeout(2000);
-
-      // // Extra check: ensure message box is visible
-      // if (!(await this.messageText.isVisible({ timeout: 3000 }))) {
-      //   await this.page.screenshot({ path: `error_message_text_not_visible_${type}.png` });
-      //   throw new Error(`Message input field not visible after clicking 'Get Started'`);
-      // }
-
-      // // If content is not provided, a random message is used
-      // if (!content) {
-      //   console.log('No content provided, using randomly generated message');
-      // }
-
-      // // Fill the message input box
-      // try {
-      //   await this.messageText.fill(messageToSend);
-      //   console.log('Filled message text:', messageToSend);
-      // }
-      // catch (error) {
-      //   await this.page.screenshot({ path: `error_fill_message_${type}.png` });
-      //   throw new Error(`Failed to fill message text: ${error.message}`);
-      // }
-
-      // // Save the message to file (used by fan test)
-      // const savePath = path.resolve(__dirname, '../data/lastSentMessage.json');
-      // try {
-
-      //   fs.writeFileSync(savePath, JSON.stringify({ message: messageToSend }, null, 2), 'utf-8');
-      //   console.log(`Saved sent message to: ${savePath}`);
-      // }
-      //  catch (error) {
-      //   console.error('Failed to save the sent message to file:', error.message);
-      //   await this.page.screenshot({ path: `error_save_message_${type}.png` });
-      //   throw new Error(`Failed to save message to file: ${error.message}`);
-      // }
 
       // Select the "Media" radio button for vault media
       const mediaRadioButton = this.page.locator('input#mediaRadio[type="radio"][value="Media"]');
@@ -392,80 +267,93 @@ async sendMassMediaVault({ type, content }) {
         throw new Error('Failed to click Add Vault Media button');
       }
 
-// Select the radio button using the full XPath
-//const mediaInputLocator = this.page.locator("(//div[@class='d-flex align-items-center ps-2 gap-2 position-relative']/img)[1]");
-const mediaInputLocator = this.page.locator("(//input[contains(@id, 'checkboxNoLabel')])[3]");
+      // Select the vault media file (radio checkbox)
+      const mediaInputLocator = this.page.locator("(//input[contains(@id, 'checkboxNoLabel')])[3]");
+      try {
+        await mediaInputLocator.waitFor({ state: 'visible', timeout: 10000 });
 
-try {
-  // Wait for the radio button to be visible (explicit wait with a longer timeout)
-  await mediaInputLocator.waitFor({ state: 'visible', timeout: 10000 }); // Increased timeout to 10 seconds
-  
-  // Check if the radio button is already checked
-  const isChecked = await mediaInputLocator.isChecked();
-  if (!isChecked) {
-    // Click the radio button if it's not already checked
-    await mediaInputLocator.click();
-    console.log('Radio button clicked successfully');
-  } else {
-    console.log('Radio button is already selected');
-  }
-
-  // Wait for the "Add Vault Media" button or the next required step
-  const addVaultMediaButton = await this.page.locator("//button[contains(text(), 'Add Vault Media')]");
-  await addVaultMediaButton.waitFor({ state: 'visible', timeout: 5000 });
-  await addVaultMediaButton.click();
-
-  // Select the media file for attachment
-  const fileInputLocator = await this.page.locator('input[type="file"]'); // Locate the file input field
-  await fileInputLocator.setInputFiles('/path/to/your/image.jpg'); // Update with the correct file path
-  console.log('Selected media file for attachment');
-  
-} catch (error) {
-  // Take a screenshot if an error occurs
-  await this.page.screenshot({ path: `error_select_media_${type}.png` });
-  console.error('Error occurred while selecting the radio button or file:', error);
-  throw new Error('Failed to select media file');
-}
-
-// Click on the "Choose" button
-  const chooseButton = this.page.locator('button:has(text="Choose")');
-    try {
-        await chooseButton.waitFor({ state: 'visible', timeout: 5000 });
-        await chooseButton.click();
-        console.log('Clicked Choose button');
+        const isChecked = await mediaInputLocator.isChecked();
+        if (!isChecked) {
+          await mediaInputLocator.click();
+          console.log('Radio button clicked successfully');
+        } else {
+          console.log('Radio button is already selected');
+        }
       } catch (error) {
-        await this.page.screenshot({ path: `error_choose_button_${type}.png` });
+        await this.page.screenshot({ path: `error_select_media_${type}.png` });
+        console.error('Error occurred while selecting the media file:', error);
+        throw new Error('Failed to select media file');
+      }
+
+      // Click on the "Choose" button
+      const chooseButton = this.page.locator('button:has-text("Choose")');
+      try {
+        await safeClick(this.page, chooseButton, `error_choose_button_${type}`);
+        console.log('Clicked Choose button successfully');
+      } catch (error) {
+        console.error('Error clicking Choose button:', error.message);
         throw new Error('Failed to click Choose button');
       }
 
-      // Call selectSendDetails() to check the follower and active subscribers checkboxes, scroll the Send button
+      // Check "Followers" and "Active Subscribers", and scroll Send button
       await this.selectSendDetails();
 
-      // Now that all details are set, click on the Send button
+      // Select Pay-to-view option and fill the price
+      try {
+
+         const payToViewRadio = this.page.locator('input#payView[type="radio"][value="Pay-to-view"]');
+         const priceInputField = this.page.locator('input[placeholder="Enter price to pay"][type="number"]');
+         
+        // Wait for radio and click it
+        await payToViewRadio.waitFor({ state: 'visible', timeout: 5000 });
+        await payToViewRadio.check();
+        console.log('Checked Pay-to-view radio button');
+
+        // Wait for price input to become visible and enabled
+        await priceInputField.waitFor({ state: 'visible', timeout: 5000 });
+
+        const isDisabled = await priceInputField.isDisabled();
+        if (isDisabled) {
+          throw new Error('Price input field is disabled even after selecting Pay-to-view');
+        }
+
+        // Clear and enter "5"
+        await priceInputField.fill('5');
+        console.log('Entered price 5 into Pay-to-view input field');
+      } catch (error) {
+        await this.page.screenshot({ path: `error_pay_to_view_setup_${type}.png` });
+        throw new Error(`Failed to set Pay-to-view price: ${error.message}`);
+      }
+
+      // Wait for Send button to be enabled and click it
       try {
         await this.sendButton.waitFor({ state: 'visible', timeout: 5000 });
+
+        // Retry until enabled
+        await this.page.waitForFunction(
+          (el) => !el.disabled,
+          this.sendButton,
+          { timeout: 5000 }
+        );
+
         await this.sendButton.click();
         console.log('Clicked Send button');
       } catch (error) {
         await this.page.screenshot({ path: `error_send_button_${type}.png` });
-        throw new Error('Failed to click Send button');
+        throw new Error('Failed to click Send button after price input');
       }
 
     } else {
-      // 'Get Started' not visible
-      console.error('Get Started option not visible within timeout');
       await this.page.screenshot({ path: `error_get_started_not_visible_${type}.png` });
       throw new Error('Get Started option not visible');
     }
-
-    return messageToSend; // Return the actual message sent for verification
   } catch (error) {
-    // Catch all unexpected errors, log and screenshot
-    console.error(`Error sending mass ${type} message:`, error.message);
+    console.error(`Error sending mass ${type} vault media:`, error.message);
     await this.page.screenshot({ path: `error_send_mass_${type}_${Date.now()}.png` });
     throw error;
   }
 }
+
 
 async selectSendDetails() {
   try {
@@ -495,6 +383,8 @@ async selectSendDetails() {
     throw error;
   }
 }
+
+
 async getLastReceivedMsgFromCreator(expectedMessage = '') {
   try {
     const messageLocator = this.page.locator('div.bg-chat-receiver div.px-2.pt-1').last();

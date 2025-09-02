@@ -110,7 +110,7 @@ try {
 
 // Select send details and submit
 try {
-  await chat.sendMassMessageFromData();
+  await chat.sendMassMediaVault({ type: 'creator' }); // Or whatever `type` you're using
   console.log('Selected send details for the message.');
 } catch (error) {
   await handleError(page, index, 'Select Send Details', error);
