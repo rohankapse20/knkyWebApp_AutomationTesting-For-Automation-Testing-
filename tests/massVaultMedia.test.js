@@ -22,7 +22,7 @@ const fanData = getTestData('./data/testData.xlsx', 'users_LoginData');
 
 // Playwright setup
 test.use({ viewport: { width: 1600, height: 900 } });
-test.setTimeout(60000); // Increase timeout for slow tests
+test.setTimeout(12000); // Increase timeout for slow tests
 
 // Helper function to handle error logging and screenshot
 async function handleError(page, index, step, error) {
@@ -40,7 +40,132 @@ async function handleError(page, index, step, error) {
 // Free Vault Media Messages
 chatData.forEach((dataRow, index) => {
   test(`Mass Vault Media Send test #${index + 1} - ${dataRow.CreatorEmail}`, async ({ page }) => {
-    test.setTimeout(300000);  //  Set timeout to 5 minutes
+    test.setTimeout(180000);  //  Set timeout to 3 minutes
+
+    const base = new BasePage(page);
+    const signin = new SigninPage(page);
+    const chat = new ChatPage(page);
+
+    let phrase;
+    try {
+      phrase = generateRandomMessage(); // Generate random message
+      console.log(`Generated phrase: ${phrase}`);
+    } catch (error) {
+      await handleError(page, index, 'Generate Random Message', error);
+    }
+
+    // Write message to JSON for fan verification
+    const messagePath = path.resolve(__dirname, '../data/lastSentMessage.json');
+    try {
+      fs.writeFileSync(messagePath, JSON.stringify({ message: phrase }, null, 2));
+      console.log(`Message written to: ${messagePath}`);
+    } catch (error) {
+      await handleError(page, index, 'Write Message to JSON', error);
+    }
+
+    // Login and Send Mass Message Process
+    try {
+      console.log('Navigating to login page...');
+      await base.navigate();
+      await signin.goToSignin();
+      await signin.fillSigninForm(dataRow.CreatorEmail, dataRow.CreatorPassword);
+      await signin.signinSubmit();
+      await chat.handleOtpVerification();
+    } catch (error) {
+      await handleError(page, index, 'Login Flow', error);
+    }
+
+    // Confirm successful login
+    try {
+      const welcomePopup = page.locator('text=Welcome Back, PlayfulMistress');
+      await expect(welcomePopup).toBeVisible({ timeout: 20000 });
+      console.log(`Successfully logged in: ${dataRow.CreatorEmail}`);
+    } catch (error) {
+      await handleError(page, index, 'Login Confirmation', error);
+    }
+
+    // Navigate to chat
+    try {
+      await chat.navigateToChat();
+      await chat.getStartedMassOption();
+      console.log('Navigated to chat and selected mass message option.');
+    } catch (error) {
+      await handleError(page, index, 'Navigate to Chat', error);
+    }
+
+// Send Mass Vault Media Message
+const messageType = dataRow.MessageType?.toLowerCase();
+console.log(`Sending Mass Message for type: ${messageType}`);
+let sentMessage;
+
+try {
+  // Step 1 - Sending the Mass Media Vault message
+  sentMessage = await chat.sendMassMediaVault({
+    type: messageType,
+    content: phrase,
+  });
+
+  await page.waitForTimeout(1500); // Small buffer wait
+  console.log('Mass message content sent.');
+} catch (error) {
+  await handleError(page, index, 'Step 1 - Send Mass Media Vault', error);
+}
+
+// Step 2 - Wait for success popup
+try {
+  console.log('Waiting for success popup...');
+  await chat.waitForSuccessPopup({ timeout: 15000 });
+  console.log('Success popup appeared.');
+} catch (error) {
+  const path = `screenshots/error_success_popup_not_visible_${Date.now()}.png`;
+  await page.screenshot({ path, fullPage: true });
+  console.error('Success popup did not appear.');
+  throw new Error(`Step 3 - Success popup not visible. Screenshot: ${path}`);
+}
+
+// Step 3 - Close the success popup
+try {
+  console.log('Closing success popup...');
+  await chat.closeSuccessPopup();
+  await page.waitForTimeout(2000); // Wait after closing
+  console.log('Success popup closed.');
+} catch (error) {
+  const path = `screenshots/error_closing_popup_${Date.now()}.png`;
+  await page.screenshot({ path, fullPage: true });
+  throw new Error(`Step 4 - Failed to close success popup. Screenshot: ${path}`);
+}
+
+// Step 4 - Verify popup is no longer visible
+try {
+  console.log('Verifying success popup is not visible...');
+  const isStillVisible = await chat.successPopup?.isVisible({ timeout: 3000 });
+
+  if (isStillVisible) {
+    const path = `screenshots/error_popup_still_visible_${Date.now()}.png`;
+    await page.screenshot({ path, fullPage: true });
+    throw new Error(`Step 5 - Success popup still visible after closing. Screenshot: ${path}`);
+  }
+
+  console.log(`Test Passed: Vault Media sent successfully by ${dataRow.CreatorEmail}`);
+  expect(true).toBeTruthy(); // Pass the test
+
+} catch (error) {
+  const path = `screenshots/error_checking_popup_visibility_${Date.now()}.png`;
+  await page.screenshot({ path, fullPage: true });
+  throw new Error(`Step 4 - Error verifying popup visibility. Screenshot: ${path}`);
+}
+
+});
+});
+
+fanData.forEach((fan, index) => {
+  test(`Verify Vault Media message visible to Fans after paying the money #${index + 1} - ${fan.FanEmail}`, async ({ browser }) => {
+
+    // test.setTimeout(180000);  //  Set timeout to 3 minutes
+    
+    // Create a new context & page for each fan
+    const context = await browser.newContext();
+    const page = await context.newPage();
 
     const base = new BasePage(page);
     const signin = new SigninPage(page);
@@ -96,137 +221,65 @@ chatData.forEach((dataRow, index) => {
 // Send Mass Message
 const messageType = dataRow.MessageType?.toLowerCase();
 console.log(`Sending Mass Message for type: ${messageType}`);
-let sentMessage = '';
+let sentMessage;
 
 try {
-  // Sending the Mass Media Vault message
+  // Step 1 - Sending the Mass Media Vault message
   sentMessage = await chat.sendMassMediaVault({
     type: messageType,
-    content: phrase, // Use the generated phrase as message content
+    content: phrase,
   });
-  await page.waitForTimeout(1000); // Buffer wait after typing message
 
+  await page.waitForTimeout(1500); // Small buffer wait
+  console.log('Mass message content sent.');
 } catch (error) {
-  await handleError(page, index, 'Send Mass Message', error);
+  await handleError(page, index, 'Step 1 - Send Mass Media Vault', error);
 }
 
-// Select send details and submit
-try {
-  await chat.sendMassMediaVault({ type: 'creator' }); // Or whatever `type` you're using
-  console.log('Selected send details for the message.');
-} catch (error) {
-  await handleError(page, index, 'Select Send Details', error);
-}
 
-// Submit the Mass message form
+// Step 2 - Wait for success popup
 try {
-  // Click submit
-  await chat.submitForm();
-
-  // Wait for success popup to appear
+  console.log('Waiting for success popup...');
   await chat.waitForSuccessPopup({ timeout: 15000 });
+  console.log('Success popup appeared.');
+} catch (error) {
+  const path = `screenshots/error_success_popup_not_visible_${Date.now()}.png`;
+  await page.screenshot({ path, fullPage: true });
+  console.error('Success popup did not appear.');
+  throw new Error(`Step 3 - Success popup not visible. Screenshot: ${path}`);
+}
 
-  // Try closing the success popup
-  try {
-    await chat.closeSuccessPopup();
-    console.log('Closed success popup');
-  } catch (err) {
-    const path = `screenshots/error_closing_popup_${Date.now()}.png`;
-    await page.screenshot({ path, fullPage: true });
-    throw new Error(`Failed to click close on success popup. Screenshot: ${path}`);
-  }
+// Step 3 - Close the success popup
+try {
+  console.log('Closing success popup...');
+  await chat.closeSuccessPopup();
+  await page.waitForTimeout(2000); // Wait after closing
+  console.log('Success popup closed.');
+} catch (error) {
+  const path = `screenshots/error_closing_popup_${Date.now()}.png`;
+  await page.screenshot({ path, fullPage: true });
+  throw new Error(`Step 4 - Failed to close success popup. Screenshot: ${path}`);
+}
 
-  // Wait for 2 seconds after closing
-  await page.waitForTimeout(2000);
+// Step 4 - Verify popup is no longer visible
+try {
+  console.log('Verifying success popup is not visible...');
+  const isStillVisible = await chat.successPopup?.isVisible({ timeout: 3000 });
 
-  // Explicitly check if the popup is still visible
-  let isStillVisible = false;
-  try {
-    isStillVisible = await chat.successPopup?.isVisible({ timeout: 3000 });
-  } catch {
-    isStillVisible = false; // Popup likely not found anymore
-  }
-
-  // If the popup is still visible, fail the test
   if (isStillVisible) {
     const path = `screenshots/error_popup_still_visible_${Date.now()}.png`;
     await page.screenshot({ path, fullPage: true });
-    throw new Error(`Success popup still visible after close. Screenshot: ${path}`);
+    throw new Error(`Step 5 - Success popup still visible after closing. Screenshot: ${path}`);
   }
 
-  // If no issues, the test passes
-  console.log(`Mass ${messageType} message sent successfully by ${dataRow.CreatorEmail}`);
-  expect(true).toBeTruthy();
+  console.log(`Test Pass: Vault Media sent successfully by ${dataRow.CreatorEmail}`);
+  expect(true).toBeTruthy(); // Pass the test
 
 } catch (error) {
-  await handleError(page, index, 'Submit Form', error);
+  const path = `screenshots/error_checking_popup_visibility_${Date.now()}.png`;
+  await page.screenshot({ path, fullPage: true });
+  throw new Error(`Step 4 - Error verifying popup visibility. Screenshot: ${path}`);
 }
-  
-  });
+
 });
-
-fanData.forEach((fan, index) => {
-  test.skip(`Verify Vault Media message visible to fan #${index + 1} - ${fan.FanEmail}`, async ({ browser }) => {
-    test.setTimeout(300_000); // 5 minutes
-
-    const messagePath = path.resolve(__dirname, '../data/lastSentMessage.json');
-    const messageData = JSON.parse(fs.readFileSync(messagePath, 'utf-8'));
-    const expectedMessage = messageData.message?.trim();
-
-    if (!expectedMessage) {
-      throw new Error('No message found in lastSentMessage.json.');
-    }
-
-const normalizedExpected = expectedMessage.toLowerCase().replace(/\s+/g, ' ').trim();
-const delays = [0, 2000, 5000, 7000, 10000, 12000, 15000, 17000, 20000, 25000]; // Ten Retry intervals
-const retryLimit = delays.length;
-
-const context = await browser.newContext();
-const page = await context.newPage();
-
-const base = new BasePage(page);
-const signin = new SigninPage(page);
-const chat = new ChatPage(page);
-
-try {
-  await base.navigate();
-  await signin.goToSignin();
-  await signin.fillSigninForm(fan.FanEmail, fan.FanPassword);
-  await signin.signinSubmit();
-  await chat.handleOtpVerification();
-
-  const welcomePopup = page.locator('text=Welcome Back,');
-  await expect(welcomePopup).toBeVisible({ timeout: 20000 });
-  console.log(`Logged in: ${fan.FanEmail}`);
-
- // Assuming this is inside your fan test function async context
-
-await chat.navigateToChat();
-await chat.chatWithCreator();
-
-// let messageFound = false;
-// let messagePartiallyVisible = false;
-// let timeTaken = 0;
-
-  let rawText = '';
-
-      try {
-        rawText = await chat.getLastReceivedMsgFromCreator(expectedMessage);
-        console.log(`Received message matches expected: "${rawText}"`);
-        console.log(`Test passed for fan ${fan.FanEmail}: Message visible.`);
-      } catch (err) {
-        const screenshotPath = `screenshots/message_not_visible_${Date.now()}.png`;
-        await page.screenshot({ path: screenshotPath, fullPage: true });
-        throw new Error(`Message not visible or fully loaded for fan ${fan.FanEmail}: ${err.message}`);
-      }
-
-    } catch (error) {
-      console.error(`Error in test for fan ${fan.FanEmail}: ${error.message}`);
-      throw error;
-    } finally {
-      await page.close();
-      await context.close();
-    }
-
-  });
 });

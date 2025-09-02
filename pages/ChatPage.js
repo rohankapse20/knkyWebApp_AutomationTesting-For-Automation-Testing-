@@ -621,27 +621,11 @@ async getLastReceivedMsgFromCreator(expectedMessage = '') {
 
 
 async submitForm() {
-  try {
-    await this.page.waitForTimeout(1000);
-    await this.sendButton.scrollIntoViewIfNeeded();
-    await expect(this.sendButton).toBeVisible({ timeout: 10000 });
-    await expect(this.sendButton).toBeEnabled({ timeout: 10000 });
-
-    await this.sendButton.evaluate((btn) => {
-      return btn && !btn.disabled && btn.offsetParent !== null;
-    });
-
-    await this.sendButton.click({ trial: true });
-    await this.sendButton.click();
-    console.log('Clicked Send button');
-
-  } catch (error) {
-    console.error('Failed in submitForm():', error.message);
-    if (!this.page.isClosed()) {
-      await this.page.screenshot({ path: 'error_submit_form.png', fullPage: true });
-    }
-    throw error;
-  }
+  await this.page.waitForTimeout(1000);
+  await this.sendButton.scrollIntoViewIfNeeded();
+  await expect(this.sendButton).toBeVisible({ timeout: 10000 });
+  await expect(this.sendButton).toBeEnabled({ timeout: 10000 });
+  await this.sendButton.click();
 }
 // async waitForChatToLoad() {
 // const chatContainer = this.page.locator('textarea[placeholder="Send a message"]').first();
