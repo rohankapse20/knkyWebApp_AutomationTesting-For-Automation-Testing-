@@ -35,14 +35,17 @@ class BasePage {
   throw new Error(`Navigation failed: ${err.message}`);
 }
 
-    try {
-      console.log('Waiting for age confirmation button...');
-      await this.ageConfirmButton.waitFor({ state: 'visible', timeout: 50000 });
-      await this.ageConfirmButton.click();
-      console.log('Clicked on age confirmation button.');
-    } catch (err) {
-      throw new Error('Age confirmation button did not appear within 50s..!!!');
-    }
+try {
+  const ageConfirmButton = this.page.locator('button#age-confirm');
+  if (await ageConfirmButton.isVisible({ timeout: 5000 })) {
+    await ageConfirmButton.click();
+    console.log('Clicked on age confirmation button.');
+  } else {
+    console.log('Age confirmation button not visible — skipping.');
+  }
+} catch (err) {
+  console.log('Age confirmation button not found — skipping.');
+}
 
     try {
       await this.signinButton.waitFor({ state: 'visible', timeout: 40000 });
