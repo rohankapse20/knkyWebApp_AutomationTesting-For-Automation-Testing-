@@ -71,12 +71,12 @@ async chatWithCreator(retryCount = 0) {
 
   try {
     console.log(`[${retryCount}] Starting chatWithCreator`);
-    await this.page.waitForTimeout(1000);
+    await this.page.waitForTimeout(2000);
 
     let isChatEmpty = await emptyChatText.isVisible({ timeout: 5000 }).catch(() => false);
     if (isChatEmpty) {
       console.log(`[${retryCount}] Chat list empty, performing search...`);
-      await searchInput.waitFor({ state: 'visible', timeout: 10000 });
+      await searchInput.waitFor({ state: 'visible', timeout: 20000 });
       await searchInput.fill('');
       await this.page.waitForTimeout(300);
       await searchInput.fill(creatorName);
@@ -604,26 +604,84 @@ async getLastReceivedMsgFromCreator(expectedMessage = '') {
   
 }
 
- async createCreator_MassMedia() {
-    try {
-      const unlockBtn = this.page.locator('//button[contains(text(), "Unlock for $5.00")]');
-      await unlockBtn.waitFor({ state: 'visible', timeout: 10000 });
-      await unlockBtn.click();
+async createCreator_MassMedia() {
+  const maxRetries = 5;
 
-      const payBtn = this.page.locator('//button[contains(text(), "Pay $5.00")]');
-      await payBtn.waitFor({ state: 'visible', timeout: 10000 });
-      await payBtn.click();
+  try {
+    console.log("Scrolling to bottom to find recent vault media...");
 
-      const confirmationText = this.page.locator('text=Your message has been unlocked.');
-      await confirmationText.waitFor({ state: 'visible', timeout: 15000 });
+    let unlockBtn = null;
+    let found = false;
 
-      console.log("Message unlocked successfully.");
-    } catch (error) {
-      console.error("Failed to unlock message:", error);
-      await this.page.screenshot({ path: 'unlock_message_failed.png', fullPage: true });
-      throw error;
+    // Retry logic to ensure the chat fully loads and scroll reaches bottom
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await this.page.mouse.wheel(0, 7000); // simulate scroll
+        await this.page.waitForTimeout(1000); // give time to load
+
+        unlockBtn = this.page.locator('//button[contains(@class, "style_btn-knky-white") and contains(text(), "Unlock for")]');
+
+        if (await unlockBtn.first().isVisible()) {
+          console.log(`Unlock button found on attempt ${attempt}`);
+          found = true;
+          break;
+        }
+
+        console.log(`Unlock button not visible on attempt ${attempt}. Retrying scroll...`);
+      } catch (scrollError) {
+        console.warn(`Scroll attempt ${attempt} failed:`, scrollError.message);
+      }
     }
+
+    if (!found || !unlockBtn) {
+      throw new Error("Unlock button not found after all retries.");
+    }
+
+    console.log("Clicking Unlock button...");
+    await unlockBtn.last().click();
+    await this.page.waitForTimeout(2000); // wait for payment modal to appear
+
+try {
+  const payBtn = this.page.locator('button[class*="style_btn-knky-primary"]:has-text("Pay $5.00")');
+
+  // Wait explicitly for Pay button to appear, be visible and enabled
+  await payBtn.waitFor({ state: 'visible', timeout: 15000 });
+
+  const isEnabled = await payBtn.isEnabled();
+  const isVisible = await payBtn.isVisible();
+
+  if (!isVisible || !isEnabled) {
+    throw new Error("Pay button is not interactable (visible or enabled state failed).");
   }
+
+  console.log("Clicking Pay $5.00 button...");
+  await payBtn.click({ timeout: 5000 });
+
+  // Simulate payment processing wait
+  await this.page.waitForTimeout(2000);
+
+  // Wait for confirmation text after payment
+  const confirmationText = this.page.locator('text=Your media vault message has been unlocked.');
+  await confirmationText.waitFor({ state: 'visible', timeout: 15000 });
+
+  console.log("Vault Media message unlocked successfully.");
+  
+} catch (error) {
+  console.error("Failed to pay for vault Media:", error.message);
+
+  if (!this.page.isClosed()) {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    await this.page.screenshot({ path: `pay_button_failed_${timestamp}.png`, fullPage: true });
+  }
+
+  throw error; // re-throw to fail the test
+}
+  } catch (error) {
+    console.error("Failed to received vault media:", error.message);
+    await this.page.screenshot({ path: `vault_media_failed_${fanEmail.replace(/[@.]/g, '_')}.png`, fullPage: true });
+    throw error;
+  }
+}
 
 async receivedVaultMedia(fanEmail) {
   const maxRetries = 5;
@@ -632,14 +690,25 @@ async receivedVaultMedia(fanEmail) {
     try {
       console.log(`Attempt ${attempt}: Verifying Vault Media for fan: ${fanEmail}`);
 
-      // Wait for and click "Got it!" button
-      const gotItBtn = this.page.locator('//button[contains(text(), "Got it!")]');
+      // More unique CSS selector using both classes and text match
+      const gotItBtn = this.page.locator('button.swal2-confirm.swal2-styled:has-text("Got it!")');
+
+      // Explicit wait: visible and enabled
       await gotItBtn.waitFor({ state: 'visible', timeout: 10000 });
+      const isEnabled = await gotItBtn.isEnabled();
+
+      if (!isEnabled) {
+        throw new Error('"Got it!" button is visible but not enabled.');
+      }
+
+      // Click the button
       await gotItBtn.click();
+      console.log('Clicked "Got it!" button.');
+
 
       // Wait for the media image
       const image = this.page.locator('//img[contains(@src, "/vault/") and contains(@src, "compressed.jpeg")]');
-      await image.waitFor({ state: 'visible', timeout: 10000 });
+      await image.waitFor({ state: 'visible', timeout: 15000 });
 
       // Click to open image modal
       await image.scrollIntoViewIfNeeded();

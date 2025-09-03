@@ -39,8 +39,8 @@ async function handleError(page, index, step, error) {
 // Test Loop for Mass Vault Media Sending for Free to Fans
 // Free Vault Media Messages
 chatData.forEach((dataRow, index) => {
-  test.skip(`Mass Vault Media Send test #${index + 1} - ${dataRow.CreatorEmail}`, async ({ page }) => {
-    test.setTimeout(180000);  //  Set timeout to 3 minutes
+  test(`Mass Vault Media Send test #${index + 1} - ${dataRow.CreatorEmail}`, async ({ page }) => {
+    test.setTimeout(240000);  //  Set timeout to 4 minutes
 
     const base = new BasePage(page);
     const signin = new SigninPage(page);
@@ -161,6 +161,9 @@ try {
 // Test to verify Paid Vault Media visibility to Fans
 fanData.forEach((fan, index) => {
   test(`Verify Vault Media message visible to Fans after paying the money #${index + 1} - ${fan.FanEmail}`, async ({ browser }) => {
+    
+   test.setTimeout(240000);  // Set timeout to 4 minutes
+    
     const context = await browser.newContext();
     const page = await context.newPage();
 
@@ -183,6 +186,9 @@ fanData.forEach((fan, index) => {
       // Chat Navigation
       await chat.navigateToChat();
 
+      // Go to chat with creator
+      await chat.chatWithCreator();
+
       // Step 3: Unlock Vault Media by paying
       await chat.createCreator_MassMedia();
 
@@ -192,13 +198,31 @@ fanData.forEach((fan, index) => {
       // Final Assertion: Test passes only if media was successfully verified
       expect(success, `Vault media not verified for fan: ${fan.FanEmail}`).toBe(true);
 
-    } catch (error) {
-      const safeEmail = fan.FanEmail.replace(/[@.]/g, "_");
-      console.error(`Test failed for fan ${fan.FanEmail}:`, error.message);
+    }  catch (error) {
+  const safeEmail = fan.FanEmail.replace(/[@.]/g, "_");
+  console.error(`Test failed for fan ${fan.FanEmail}:`, error.message);
+
+  if (!page.isClosed()) {
+    try {
       await page.screenshot({ path: `test_failure_${safeEmail}.png`, fullPage: true });
-      throw error;
-    } finally {
-      await context.close();
+    } catch (screenshotError) {
+      console.warn(`Could not take screenshot for ${fan.FanEmail}:`, screenshotError.message);
     }
+  } else {
+    console.warn(`Cannot take screenshot — page is already closed.`);
+  }
+
+  throw error;
+}
+finally {
+  if (context && context.pages().length > 0) {
+    try {
+      await context.close();
+    } catch (e) {
+      console.warn('Error closing context:', e.message);
+    }
+  }
+}
+
   });
-});
+  });
