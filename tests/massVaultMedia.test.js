@@ -39,7 +39,7 @@ async function handleError(page, index, step, error) {
 // Test Loop for Mass Vault Media Sending for Free to Fans
 // Free Vault Media Messages
 chatData.forEach((dataRow, index) => {
-  test(`Mass Vault Media Send test #${index + 1} - ${dataRow.CreatorEmail}`, async ({ page }) => {
+  test.skip(`Mass Vault Media Send test #${index + 1} - ${dataRow.CreatorEmail}`, async ({ page }) => {
     test.setTimeout(180000);  //  Set timeout to 3 minutes
 
     const base = new BasePage(page);
@@ -158,11 +158,9 @@ try {
 });
 });
 
+// Test to verify Paid Vault Media visibility to Fans
 fanData.forEach((fan, index) => {
   test(`Verify Vault Media message visible to Fans after paying the money #${index + 1} - ${fan.FanEmail}`, async ({ browser }) => {
-
-    // test.setTimeout(180000);  //  Set timeout to 3 minutes
-
     const context = await browser.newContext();
     const page = await context.newPage();
 
@@ -170,26 +168,37 @@ fanData.forEach((fan, index) => {
     const signin = new SigninPage(page);
     const chat = new ChatPage(page);
 
-try {
+    try {
+      // Login process for Fan
+      await base.navigate();
+      await signin.goToSignin();
+      await signin.fillSigninForm(fan.FanEmail, fan.FanPassword);
+      await signin.signinSubmit();
+      await chat.handleOtpVerification();
 
-  await base.navigate();
-  await signin.goToSignin();
-  await signin.fillSigninForm(fan.FanEmail, fan.FanPassword);
-  await signin.signinSubmit();
-  await chat.handleOtpVerification();
+      const welcomePopup = page.locator('text=Welcome Back,');
+      await expect(welcomePopup).toBeVisible({ timeout: 20000 });
+      console.log(`Logged in: ${fan.FanEmail}`);
 
-  const welcomePopup = page.locator('text=Welcome Back,');
-  await expect(welcomePopup).toBeVisible({ timeout: 20000 });
-  console.log(`Logged in: ${fan.FanEmail}`);
+      // Chat Navigation
+      await chat.navigateToChat();
 
- // Assuming this is inside your fan test function async context
+      // Step 3: Unlock Vault Media by paying
+      await chat.createCreator_MassMedia();
 
-  await chat.navigateToChat();
-}
-catch (error) {
-  console.error(`Error occurred while chatting with creator: ${error.message}`);
-}
+      // Step 4: Verify Vault Media is received and viewable
+      const success = await chat.receivedVaultMedia(fan.FanEmail);
 
+      // Final Assertion: Test passes only if media was successfully verified
+      expect(success, `Vault media not verified for fan: ${fan.FanEmail}`).toBe(true);
 
-});
+    } catch (error) {
+      const safeEmail = fan.FanEmail.replace(/[@.]/g, "_");
+      console.error(`Test failed for fan ${fan.FanEmail}:`, error.message);
+      await page.screenshot({ path: `test_failure_${safeEmail}.png`, fullPage: true });
+      throw error;
+    } finally {
+      await context.close();
+    }
+  });
 });

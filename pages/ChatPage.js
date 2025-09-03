@@ -282,8 +282,9 @@ async sendMassMediaVault({ type }) {
         await this.page.screenshot({ path: `error_select_media_${type}.png` });
         console.error('Error occurred while selecting the media file:', error);
         throw new Error('Failed to select media file');
-      }
-
+      }      
+      
+      
       // Click the "Choose" button
       const chooseButton = this.page.locator('button:has-text("Choose")');
       try {
@@ -600,26 +601,80 @@ async getLastReceivedMsgFromCreator(expectedMessage = '') {
     }
     throw error;
   }
+  
 }
 
+ async createCreator_MassMedia() {
+    try {
+      const unlockBtn = this.page.locator('//button[contains(text(), "Unlock for $5.00")]');
+      await unlockBtn.waitFor({ state: 'visible', timeout: 10000 });
+      await unlockBtn.click();
 
+      const payBtn = this.page.locator('//button[contains(text(), "Pay $5.00")]');
+      await payBtn.waitFor({ state: 'visible', timeout: 10000 });
+      await payBtn.click();
 
+      const confirmationText = this.page.locator('text=Your message has been unlocked.');
+      await confirmationText.waitFor({ state: 'visible', timeout: 15000 });
 
-// async findMessageLocator(expectedMessage) {
-//   const messageLocators = this.page.locator('div.bg-chat-receiver div.px-2.pt-1');
-//   const count = await messageLocators.count();
+      console.log("Message unlocked successfully.");
+    } catch (error) {
+      console.error("Failed to unlock message:", error);
+      await this.page.screenshot({ path: 'unlock_message_failed.png', fullPage: true });
+      throw error;
+    }
+  }
 
-//   for (let i = count - 1; i >= 0; i--) {
-//     const msg = await messageLocators.nth(i).innerText();
-//     if (msg.toLowerCase().replace(/\s+/g, ' ').includes(expectedMessage.toLowerCase().trim())) {
-//       return messageLocators.nth(i);
-//     }
-//   }
+async receivedVaultMedia(fanEmail) {
+  const maxRetries = 5;
 
-//   return null;
-// }
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`Attempt ${attempt}: Verifying Vault Media for fan: ${fanEmail}`);
 
+      // Wait for and click "Got it!" button
+      const gotItBtn = this.page.locator('//button[contains(text(), "Got it!")]');
+      await gotItBtn.waitFor({ state: 'visible', timeout: 10000 });
+      await gotItBtn.click();
 
+      // Wait for the media image
+      const image = this.page.locator('//img[contains(@src, "/vault/") and contains(@src, "compressed.jpeg")]');
+      await image.waitFor({ state: 'visible', timeout: 10000 });
+
+      // Click to open image modal
+      await image.scrollIntoViewIfNeeded();
+      await image.click();
+
+      // Optional wait for modal to fully load
+      await this.page.waitForTimeout(2000);
+
+      // Close the modal or image viewer
+      const closeBtn = this.page.locator('//button[contains(@class, "btn-close")]');
+      await closeBtn.waitFor({ state: 'visible', timeout: 10000 });
+      await closeBtn.click();
+
+      console.log(`Vault media successfully verified for fan: ${fanEmail}`);
+      return true; // Success
+    } catch (error) {
+      console.warn(`Attempt ${attempt} failed for fan: ${fanEmail} - ${error.message}`);
+
+      if (attempt === maxRetries) {
+        await this.page.screenshot({
+          path: `vault_media_failed_${fanEmail.replace(/[@.]/g, '_')}.png`,
+          fullPage: true
+        });
+        console.error(`Vault media verification failed after ${maxRetries} attempts for fan: ${fanEmail}`);
+        return false;
+      }
+
+      // Wait before retrying
+      await this.page.waitForTimeout(2000);
+    }
+  }
+
+  return false; // Fallback (shouldn't reach here)
+}
+  
 async submitForm() {
   await this.page.waitForTimeout(1000);
   await this.sendButton.scrollIntoViewIfNeeded();
@@ -627,13 +682,6 @@ async submitForm() {
   await expect(this.sendButton).toBeEnabled({ timeout: 10000 });
   await this.sendButton.click();
 }
-// async waitForChatToLoad() {
-// const chatContainer = this.page.locator('textarea[placeholder="Send a message"]').first();
-
-//   await chatContainer.waitFor({ timeout: 10000 });
-//   console.log('Chat container is visible.');
-// }
-
 
 async waitForSuccessPopup() {
   try {
@@ -646,24 +694,23 @@ async waitForSuccessPopup() {
   }
 }
 
-async closeSuccessPopup() {
-  try {
-    await this.successCloseButton.click();
+  async closeSuccessPopup() {
+    try {
+      await this.successCloseButton.click();
 
-    // Add a quick check to ensure the popup closes
-    await this.successPopup.waitFor({ state: 'hidden', timeout: 5000 });
-    console.log('Closed success popup');
-  } catch (error) {
-    console.error('Failed to close success popup:', error.message);
+      // Ensure the popup disappears
+      await this.successPopup.waitFor({ state: 'hidden', timeout: 5000 });
+      console.log('Closed success popup');
+    } catch (error) {
+      console.error('Failed to close success popup:', error.message);
 
-    // Guard against crashing on screenshot
-    if (!this.page.isClosed()) {
-      await this.page.screenshot({ path: 'error_close_success_popup.png' });
+      if (!this.page.isClosed()) {
+        await this.page.screenshot({ path: 'error_close_success_popup.png' });
+      }
+
+      throw error;
     }
-
-    throw error;
   }
-}
 
 }
 
