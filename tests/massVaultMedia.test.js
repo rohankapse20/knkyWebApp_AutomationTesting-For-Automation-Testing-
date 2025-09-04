@@ -7,7 +7,9 @@ const { BasePage } = require('../pages/BasePage');
 const { SigninPage } = require('../pages/SigninPage');
 const { ChatPage } = require('../pages/ChatPage');
 
+
 require('dotenv').config({ path: './.env' });
+
 
 // Ensure environment variables are loaded
 const BASE_URL = process.env.BASE_URL;
