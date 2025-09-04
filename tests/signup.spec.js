@@ -3,6 +3,7 @@ const { test, expect } = require('@playwright/test');
 const { getTestData } = require('../utils/readExcel');
 const { BasePage } = require('../pages/BasePage');
 const { SignupPage } = require('../pages/SignupPage');
+// const { generatePhrase } = require('../utils/helpers');
 
 const baseURL = process.env.BASE_URL ;
 const signupData = getTestData('./data/testData.xlsx', 'signup_data');
@@ -21,13 +22,6 @@ test.describe('Signup Tests', () => {
       // Created object of class 
       const base = new BasePage(page, baseURL);
       const signup = new SignupPage(page);
-
-      
-  // Generate random message for testing (optional)
-  const { generatePhrase } = require('../utils/helpers');
-  const phrase = await generatePhrase();
-  console.log(`Generated phrase: ${phrase}`);
-
       
       // call the methods()
 

@@ -2,6 +2,21 @@ const fs = require('fs');
 const path = require('path');
 
 
+
+
+
+function generatePhrase() {
+  const phrases = [
+    "The Influencer is excited about today's stream! on your profile",
+    "The Creator is sharing something exciting with you! under your new post",
+    "The Developer says: 'Hi, how are you?' during your live session",
+    "The Artist is live now! Join me! under the new video"
+  ];
+  const randomIndex = Math.floor(Math.random() * phrases.length);
+  return phrases[randomIndex];
+}
+
+
 // Updated message content for a creator and fan interaction
 function generateRandomMessage() {
   // Subjects
@@ -198,6 +213,7 @@ module.exports = {
   takeScreenshot,
   selectDropdown,
   uploadFile,
+  generatePhrase,
   generateRandomMessage,
   waitForChatToLoad,
   safeClick
