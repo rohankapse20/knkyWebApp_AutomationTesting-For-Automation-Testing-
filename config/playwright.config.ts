@@ -1,27 +1,25 @@
-// playwright.config.ts
 import { defineConfig } from '@playwright/test';
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Determine if running in CI environment
+// Load environment variables based on environment
 const isCI = !!process.env.CI;
-
-// Load environment variables from .env file (change file based on environment if needed)
 dotenv.config({
   path: isCI
-    ? path.resolve(__dirname, '.env.ci') // Optional: use different .env for CI if you want
-    : path.resolve(__dirname, '.env'),   // Default for local dev
+    ? path.resolve(__dirname, '.env.ci') // use .env.ci for CI
+    : path.resolve(__dirname, '.env'),   // use .env for local development
 });
-
 
 export default defineConfig({
   testDir: './tests',
-  timeout: 60000,
+  timeout: 60_000,
   retries: 0,
+  workers: 1,
 
   reporter: [
     ['list'],
     ['html', { outputFolder: 'html-report', open: 'never' }],
+    ['allure-playwright'], // include allure reporter here only once
   ],
 
   use: {
@@ -29,10 +27,10 @@ export default defineConfig({
     viewport: null,
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    trace: 'on-first-retry',
     actionTimeout: 5000,
-    navigationTimeout: 30000,
+    navigationTimeout: 30_000,
 
-    // Use BASE_URL loaded from .env or CI secrets
     baseURL: process.env.BASE_URL,
 
     launchOptions: {
@@ -40,6 +38,4 @@ export default defineConfig({
       slowMo: 100,
     },
   },
-
-  workers: 1,
 });
