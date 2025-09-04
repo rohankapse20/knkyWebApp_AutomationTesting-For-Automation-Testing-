@@ -31,6 +31,7 @@ jobs:
       - name: 🎭 Install Playwright Browsers
         run: npx playwright install --with-deps
 
+      # Create .env BEFORE tests run
       - name: 🔐 Create .env file from GitHub Secrets
         run: |
           echo "BASE_URL=${{ secrets.BASE_URL }}" > .env
@@ -44,12 +45,12 @@ jobs:
           echo "USER3_PASSWORD=${{ secrets.USER3_PASSWORD }}" >> .env
 
       - name: 🧪 Run massMessage and massVaultMedia tests only
+        env:
+          CI: true
         run: |
           npm run clean
           npx playwright test tests/massMessage.test.js
           npx playwright test tests/massVaultMedia.test.js
-        env:
-          CI: true
 
       - name: 📊 Generate Allure Report
         run: |

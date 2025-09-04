@@ -30,14 +30,14 @@
     "rimraf": "^6.0.1",
     "xlsx": "^0.18.5"
   },
-"scripts": {
-  "clean": "rimraf test-results allure-report allure-results html-report",
-  "test": "npm run clean && npx playwright test",
-  "show-report": "npx playwright show-report",
-  "report:allure": "npx allure-commandline generate ./allure-results --clean -o ./allure-report && npx allure-commandline open ./allure-report",
-  "test_playwright": "npx playwright test",
-  "report": "npx playwright show-report",
-  "test:daily": "npm run clean && npx playwright test tests/massMessage.test.js && npx playwright test tests/massVaultMedia.test.js"
-}
 
+  "scripts": {
+    "clean": "rimraf test-results allure-report allure-results html-report",
+    "test": "npm run clean && npx playwright test",
+    "show-report": "npx playwright show-report",
+    "report:allure": "npx allure-commandline generate ./allure-results --clean -o ./allure-report && npx allure-commandline open ./allure-report",
+    "test_playwright": "npx playwright test",
+    "report": "npx playwright show-report",
+    "test:daily": "npm run clean && npx playwright test tests/massMessage.test.js && npx playwright test tests/massVaultMedia.test.js"
+  }
 }
