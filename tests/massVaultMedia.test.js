@@ -162,8 +162,11 @@ try {
 fanData.forEach((fan, index) => {
   test(`Verify Vault Media message visible to Fans after paying the money #${index + 1} - ${fan.FanEmail}`, async ({ browser }) => {
     
-    test.setTimeout(240000);  // Set timeout to 4 minutes
     
+// Playwright setup
+    test.use({ viewport: { width: 1600, height: 900 } });
+    test.setTimeout(240000);  // Set timeout to 4 minutes
+
     const context = await browser.newContext();
     const page = await context.newPage();
 
