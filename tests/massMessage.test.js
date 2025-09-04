@@ -21,7 +21,7 @@ const chatData = getTestData('./data/testData.xlsx', 'massMsgSend_Data');
 const fanData = getTestData('./data/testData.xlsx', 'users_LoginData');
 
 // Playwright setup
-test.use({ viewport: { width: 1600, height: 900 } });
+test.use({ viewport: { width: 1400, height: 700 } });
 test.setTimeout(60000); // Increase timeout for slow tests
 
 // Helper function to handle error logging and screenshot
@@ -148,7 +148,7 @@ try {
     throw new Error(`Success popup still visible after close. Screenshot: ${path}`);
   }
 
-  // Test passes
+  // Test passed
   console.log(`Mass ${messageType} message sent successfully by ${dataRow.CreatorEmail}`);
   expect(true).toBeTruthy();
 
@@ -159,12 +159,11 @@ try {
   });
 });
 
+
+
 fanData.forEach((fan, index) => {
   test(`Verify message visible to fan #${index + 1} - ${fan.FanEmail}`, async ({ browser }) => {
-   
-    
-    // Playwright setup
-    test.use({ viewport: { width: 1600, height: 900 } });
+  
     test.setTimeout(300_000); // 5 minutes
 
     const messagePath = path.resolve(__dirname, '../data/lastSentMessage.json');
@@ -228,161 +227,3 @@ try {
 
   });
 });
-
-
-
-
-
-
-// fanData.forEach((fan, index) => {
-//   test(`Verify message visible to fan #${index + 1} - ${fan.FanEmail}`, async ({ browser }) => {
-//     test.setTimeout(180_000); // 3 minutes
-
-//     const messagePath = path.resolve(__dirname, '../data/lastSentMessage.json');
-//     const messageData = JSON.parse(fs.readFileSync(messagePath, 'utf-8'));
-//     const expectedMessage = messageData.message?.trim();
-
-//     if (!expectedMessage) {
-//       throw new Error('No message found in lastSentMessage.json.');
-//     }
-
-//     const delays = [0, 2000, 5000, 7000, 10000]; // Retry intervals
-//     const retryLimit = delays.length;
-
-//     const context = await browser.newContext();
-//     const page = await context.newPage();
-
-//     const base = new BasePage(page);
-//     const signin = new SigninPage(page);
-//     const chat = new ChatPage(page);
-
-//     try {
-//       await base.navigate();
-//       await signin.goToSignin();
-//       await signin.fillSigninForm(fan.FanEmail, fan.FanPassword);
-//       await signin.signinSubmit();
-//       await chat.handleOtpVerification();
-
-//       const welcomePopup = page.locator('text=Welcome Back,');
-//       await expect(welcomePopup).toBeVisible({ timeout: 20000 });
-//       console.log(`Logged in as ${fan.FanEmail}`);
-
-//       await chat.navigateToChat();
-//       await chat.chatWithCreator();
-
-//       let messageFound = false;
-//       let timeTaken = 0;
-
-//       for (let attempt = 0; attempt < retryLimit; attempt++) {
-//         const delay = delays[attempt];
-//         console.log(`\n Retry #${attempt + 1} - Waiting ${delay / 1000}s...`);
-//         if (delay > 0) await page.waitForTimeout(delay);
-//         timeTaken += delay;
-
-//         try {
-//           await chat.scrollToBottom(); // Optional scroll
-
-//           const receivedMessage = await chat.getLastReceivedMsgFromCreator(expectedMessage);
-          
-//           console.log(`Message found after ${timeTaken / 1000}s (Retry #${attempt + 1})`);
-//           console.log(`Message Content: "${receivedMessage}"`);
-//           messageFound = true;
-//           break;
-
-//         } catch (err) {
-//           console.warn(`Retry #${attempt + 1} failed: ${err.message}`);
-//         }
-//       }
-
-//       if (!messageFound) {
-//         const screenshotPath = `screenshots/error_verify_message_fan_${index + 1}_${Date.now()}.png`;
-//         await page.screenshot({ path: screenshotPath, fullPage: true });
-
-//         throw new Error(`Message not received after ${timeTaken / 1000}s and ${retryLimit} retries for fan ${fan.FanEmail}`);
-
-//       }
-
-//     } catch (error) {
-//       console.error(`Test failed for fan ${fan.FanEmail}: ${error.message}`);
-//       throw error;
-
-//     } finally {
-//       await context.close();
-//     }
-//   });
-// });
-
-
-// const delays = [0, 2000, 5000, 7000, 10000];
-
-// fanData.forEach((fan, index) => {
-//   test(`Verify message visible to fan #${index + 1} - ${fan.FanEmail}`, async ({ browser }) => {
-//     test.setTimeout(180_000); // 3 minutes
-
-//     const messagePath = path.resolve(__dirname, '../data/lastSentMessage.json');
-//     const messageData = JSON.parse(fs.readFileSync(messagePath, 'utf-8'));
-//     const expectedMessage = messageData.message?.trim();
-
-//     if (!expectedMessage) {
-//       throw new Error('No message found in lastSentMessage.json.');
-//     }
-
-//     const normalizedExpected = expectedMessage.toLowerCase().replace(/\s+/g, ' ').trim();
-//     let messageFound = false;
-
-//     for (let attempt = 0; attempt < delays.length; attempt++) {
-//       const delay = delays[attempt];
-//       console.log(`\n Attempt #${attempt + 1} - waiting ${delay / 1000}s...`);
-//       if (delay > 0) await new Promise(res => setTimeout(res, delay));
-
-//       let context;
-//       try {
-//         context = await browser.newContext();
-//         const page = await context.newPage();
-
-//         const base = new BasePage(page);
-//         const signin = new SigninPage(page);
-//         const chat = new ChatPage(page);
-
-//         await base.navigate();
-//         await signin.goToSignin();
-//         await signin.fillSigninForm(fan.FanEmail, fan.FanPassword);
-//         await signin.signinSubmit();
-//         await chat.handleOtpVerification();
-
-//         const welcomePopup = page.locator('text=Welcome Back,');
-//         await expect(welcomePopup).toBeVisible({ timeout: 20000 });
-//         console.log(`Logged in: ${fan.FanEmail}`);
-
-//         await chat.navigateToChat();
-//         await chat.chatWithCreator();
-
-//         const receivedMessage = await chat.getLastReceivedMsgFromCreator(expectedMessage);
-//         const normalizedReceived = receivedMessage.toLowerCase().replace(/\s+/g, ' ').trim();
-
-//         if (normalizedReceived.includes(normalizedExpected)) {
-//           console.log(`Message found on attempt #${attempt + 1} after ${delay / 1000}s delay`);
-//           console.log(`Test passed for fan ${fan.FanEmail}`);
-//           messageFound = true;
-//           break;
-//         }
-
-//       } catch (error) {
-//         console.warn(`Attempt #${attempt + 1} failed: ${error.message}`);
-//       } finally {
-//         if (context) await context.close();
-//       }
-//     }
-
-//     if (!messageFound) {
-//       const failContext = await browser.newContext();
-//       const failPage = await failContext.newPage();
-//       const screenshotPath = `screenshots/error_verify_message_fan_${index + 1}_${Date.now()}.png`;
-//       await failPage.goto('about:blank');
-//       await failPage.screenshot({ path: screenshotPath, fullPage: true });
-//       await failContext.close();
-
-//       throw new Error(`Message not received after all retries for fan ${fan.FanEmail}`);
-//     }
-//   });
-// });

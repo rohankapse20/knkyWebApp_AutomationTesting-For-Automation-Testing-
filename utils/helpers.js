@@ -2,9 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 
-
-
-
+// Generate a random phrase from predefined options
 function generatePhrase() {
   const phrases = [
     "The Influencer is excited about today's stream! on your profile",
@@ -16,8 +14,7 @@ function generatePhrase() {
   return phrases[randomIndex];
 }
 
-
-// Updated message content for a creator and fan interaction
+// Generate dynamic random message
 function generateRandomMessage() {
   // Subjects
   const creators = ["The Creator", "The Influencer", "The Streamer", "The Developer", "The Artist", "The Content Creator"];
@@ -63,16 +60,9 @@ function generateRandomMessage() {
   // get Message for creator
   return `${creatorMessage}`;
 }
-
 console.log(generateRandomMessage());
 
-
-/**
- * Fill a text input field after waiting for visibility
- * @param {import('@playwright/test').Page} page
- * @param {string} selector - CSS or data-testid locator
- * @param {string} value - Text to fill
- */
+// Fill input field after waiting for it to be visible
 async function fillInput(page, selector, value) {
   const element = page.locator(selector);
   await element.waitFor({ state: 'visible', timeout: 10000 });
@@ -80,23 +70,7 @@ async function fillInput(page, selector, value) {
   console.log(`Filled input ${selector} with value "${value}"`);
 }
 
-/**
- * Click an element after waiting for it to be visible
- * @param {import('@playwright/test').Page} page
- * @param {string} selector - CSS or data-testid locator
- */
-async function clickElement(page, selector) {
-  const element = page.locator(selector);
-  await element.waitFor({ state: 'visible', timeout: 10000 });
-  await element.click();
-  console.log(`Clicked element ${selector}`);
-}
-
-/**
- * Highlight an element (useful for debugging)
- * @param {import('@playwright/test').Page} page
- * @param {string} selector - CSS or data-testid locator
- */
+// Highlight an element on the page
 async function highlightElement(page, selector) {
   await page.evaluate((sel) => {
     const el = document.querySelector(sel);
@@ -111,11 +85,8 @@ async function highlightElement(page, selector) {
   console.log(`Highlighted element: ${selector}`);
 }
 
-/**
- * Take a screenshot with a timestamp
- * @param {import('@playwright/test').Page} page
- * @param {string} name - Screenshot name (optional)
- */
+
+// Capture screenshot with timestamped filename
 async function takeScreenshot(page, name = 'screenshot') {
   const dir = 'screenshots';
   if (!fs.existsSync(dir)) {
@@ -128,36 +99,24 @@ async function takeScreenshot(page, name = 'screenshot') {
   console.log(`Screenshot saved: ${filePath}`);
 }
 
-/**
- * Select dropdown option by value, label, or index
- * @param {import('@playwright/test').Page} page
- * @param {string} selector - CSS or data-testid locator
- * @param {string|number} option - Option value, label, or index
- */
+
+// Select an option from a dropdown
 async function selectDropdown(page, selector, option) {
   await highlightElement(page, selector);
   await page.selectOption(selector, option);
   console.log(`Selected "${option}" in dropdown ${selector}`);
 }
 
-/**
- * Upload a file to input[type="file"]
- * @param {import('@playwright/test').Page} page
- * @param {string} selector - CSS or data-testid locator
- * @param {string} filePath - Path to file to upload
- */
+
+// Upload file to input[type="file"]
 async function uploadFile(page, selector, filePath) {
   const input = await page.$(selector);
   await input.setInputFiles(filePath);
   console.log(`Uploaded file: ${filePath} to input ${selector}`);
 }
 
-/**
- * Wait for the chat to load and verify creator name
- * @param {import('@playwright/test').Page} page
- * @param {string} expectedName - The expected creator's name in the chat header
- * @returns {boolean} - Whether the chat loaded successfully and the creator name was found
- */
+
+// Wait for chat to load by checking for specific elements
 async function waitForChatToLoad(page, expectedName) {
   const chatHeader = page.locator('.chat-header span'); // adjust if needed
   const chatMessages = page.locator('.chat-messages'); // or another solid selector
@@ -181,6 +140,7 @@ async function waitForChatToLoad(page, expectedName) {
   }
 }
 
+// Safely click an element with error handling and screenshot on failure
 async function safeClick(page, locator, screenshotName = 'click_error') {
   try {
     await locator.waitFor({ state: 'attached', timeout: 5000 });
@@ -201,6 +161,179 @@ async function safeClick(page, locator, screenshotName = 'click_error') {
     await page.screenshot({ path: `${screenshotName}.png` });
     throw new Error(`Click failed on element: ${error.message}`);
   }
+
+}
+
+
+// Scroll through chat list to find and click chat by creator name
+async function clickChatByCreatorName(page, creatorName) {
+  const chatItem = page.locator(
+    `//div[contains(@class, 'chatList_chatItem__')]//span[contains(@class, 'profile-last-message') and normalize-space(text())='${creatorName}']/ancestor::div[contains(@class, 'chatList_chatItem__')]`
+  );
+
+  let visible = await chatItem.first().isVisible().catch(() => false);
+
+  if (!visible) {
+    for (let i = 0; i < 10; i++) {
+      await page.mouse.wheel(0, 300);
+      await page.waitForTimeout(1000);
+      visible = await chatItem.first().isVisible().catch(() => false);
+      if (visible) break;
+    }
+  }
+
+  if (visible) {
+    await chatItem.first().click({ force: true });
+    await page.waitForTimeout(3000);
+  } else {
+    throw new Error(`Could not find chat item with profile-last-message for "${creatorName}"`);
+  }
+}
+
+// Scroll down a chat list container to load more items
+async function scrollDownChatList(page, chatContainerSelector, scrollStep = 300, maxScrolls = 10) {
+  const chatContainer = page.locator(chatContainerSelector);
+
+  for (let i = 0; i < maxScrolls; i++) {
+    await chatContainer.evaluate((node, step) => {
+      node.scrollBy({ top: step, behavior: 'smooth' });
+    }, scrollStep);
+
+    await page.waitForTimeout(300);
+    console.log(`Scrolled chat list ${i + 1} time(s)`);
+  }
+}
+
+// Scroll the full page down by a certain step, multiple times
+async function scrollDownPage(page, scrollStep = 500, maxScrolls = 10) {
+  for (let i = 0; i < maxScrolls; i++) {
+    await page.mouse.wheel(0, scrollStep);
+    await page.waitForTimeout(300);
+    console.log(`Scrolled page down ${i + 1} time(s)`);
+  }
+}
+
+// Scroll a scrollable container up by X pixels
+async function scrollElementUp(page, selector, pixels = 500) {
+  const element = page.locator(selector);
+  await element.evaluate((el, px) => el.scrollBy(0, -px), pixels);
+  console.log(`Scrolled element ${selector} up by ${pixels}px`);
+}
+
+
+// Scroll the full page up by X pixels
+async function scrollPageUp(page, pixels = 500) {
+  await page.mouse.wheel(0, -pixels);
+  console.log(`Scrolled page up by ${pixels}px`);
+}
+
+// Wait for an element to be clickable and then click it.
+async function waitAndClick(locator, { timeout = 10000, description = '' } = {}) {
+  try {
+    if (description) console.log(`Waiting for ${description}`);
+
+    await locator.waitFor({ state: 'attached', timeout });
+    await locator.waitFor({ state: 'visible', timeout });
+    await locator.waitFor({ state: 'enabled', timeout });
+
+    await locator.click({ force: true });
+
+    if (description) console.log(`Clicked ${description}`);
+  } catch (err) {
+    console.error(`Error clicking ${description || 'element'}: ${err.message}`);
+    throw err;
+  }
+}
+
+// Check if an element is visible on the page
+async function isElementVisible(locator, timeout = 5000) {
+  try {
+    return await locator.isVisible({ timeout });
+  } catch {
+    return false;
+  }
+}
+
+// Extract and return trimmed text content from a locator
+async function getText(locator) {
+  const text = await locator.textContent();
+  console.log(`Extracted text: ${text}`);
+  return text?.trim();
+}
+
+// Retry a function multiple times with delay
+async function assertTextVisible(page, text, timeout = 5000) {
+  const locator = page.locator(`text="${text}"`);
+  await locator.waitFor({ state: 'visible', timeout });
+  console.log(`Verified text is visible: "${text}"`);
+}
+
+
+  // Wait for network to be idle  
+async function waitForNetworkIdle(page, timeout = 5000) {
+  await page.waitForLoadState('networkidle', { timeout });
+  console.log('Network is idle');
+}
+
+// Wait for URL to contain specific text
+async function waitForUrlContains(page, partialUrl, timeout = 10000) {
+  await page.waitForFunction(
+    (url) => window.location.href.includes(url),
+    partialUrl,
+    { timeout }
+  );
+  console.log(`URL now contains: ${partialUrl}`);
+}
+
+
+// Generate a random email address
+function generateRandomEmail(prefix = 'test') {
+  const random = Math.floor(Math.random() * 100000);
+  return `${prefix}${random}@example.com`;
+}
+
+// Scroll to an element if not in viewport
+async function scrollToElement(locator) {
+  try {
+    await locator.scrollIntoViewIfNeeded();
+    console.log('Scrolled to element');
+  } catch (err) {
+    console.warn('Scroll failed:', err.message);
+  }
+}
+
+
+// Assert that an element's attribute matches expected value
+async function assertAttribute(locator, attribute, expectedValue) {
+  const value = await locator.getAttribute(attribute);
+  if (value !== expectedValue) {
+    throw new Error(`Attribute ${attribute} expected "${expectedValue}" but got "${value}"`);
+  }
+  console.log(`Attribute ${attribute} matches expected value: ${expectedValue}`);
+}
+
+
+// Clear an input field and type new text
+async function clearAndType(locator, text) {
+  await locator.click({ clickCount: 3 }); // select all
+  await locator.press('Backspace'); // clear
+  await locator.type(text);
+  console.log(`Cleared and typed: ${text}`);
+}
+
+// Scroll down a chat list container to load more items
+async function retry(fn, retries = 3, delay = 10000) {
+  let lastError;
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      console.warn(`Retry ${i + 1} failed: ${err.message}`);
+      await new Promise(res => setTimeout(res, delay));
+    }
+  }
+  throw lastError;
 }
 
 
@@ -208,7 +341,6 @@ async function safeClick(page, locator, screenshotName = 'click_error') {
 // Export all helpers
 module.exports = {
   fillInput,
-  clickElement,
   highlightElement,
   takeScreenshot,
   selectDropdown,
@@ -216,5 +348,21 @@ module.exports = {
   generatePhrase,
   generateRandomMessage,
   waitForChatToLoad,
-  safeClick
+  safeClick,
+  clickChatByCreatorName,
+  waitAndClick,
+  waitForUrlContains,
+  waitForNetworkIdle,
+  assertTextVisible,
+  getText,
+  isElementVisible,
+  retry,
+  clearAndType,
+  assertAttribute,
+  scrollToElement,
+  generateRandomEmail,
+  scrollDownChatList,
+  scrollDownPage,
+  scrollPageUp,
+  scrollElementUp,
 };

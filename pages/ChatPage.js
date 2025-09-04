@@ -1,8 +1,9 @@
 const { expect } = require('@playwright/test');
 const path = require('path');
-const fs = require('fs');
 
 const { generateRandomMessage } = require('../utils/helpers.js');
+const { clickChatByCreatorName } = require('../utils/helpers.js');
+
 
 const { safeClick } = require('../utils/helpers.js');
 
@@ -70,43 +71,39 @@ async chatWithCreator(retryCount = 0) {
   );
 
   try {
-    console.log(`[${retryCount}] Starting chatWithCreator`);
-    await this.page.waitForTimeout(2000);
+    try {
+      console.log(`[${retryCount}] Starting chatWithCreator`);
+      await this.page.waitForTimeout(2000);
 
-    let isChatEmpty = await emptyChatText.isVisible({ timeout: 5000 }).catch(() => false);
-    if (isChatEmpty) {
-      console.log(`[${retryCount}] Chat list empty, performing search...`);
-      await searchInput.waitFor({ state: 'visible', timeout: 20000 });
-      await searchInput.fill('');
-      await this.page.waitForTimeout(300);
-      await searchInput.fill(creatorName);
-      await this.page.waitForTimeout(1500);
+      let isChatEmpty = await emptyChatText.isVisible({ timeout: 5000 }).catch(() => false);
 
-      const suggestionVisible = await suggestionOption.isVisible({ timeout: 2000 }).catch(() => false);
-      if (suggestionVisible) {
-        await suggestionOption.click({ force: true });
-        await this.page.waitForTimeout(500);
-      } else {
-        throw new Error(`No suggestion found for "${creatorName}"`);
-      }
-    } else {
-      console.log(`[${retryCount}] Chat list not empty, finding creator directly...`);
-      let visible = await chatItem.first().isVisible().catch(() => false);
-      if (!visible) {
-        for (let i = 0; i < 10; i++) {
-          await this.page.mouse.wheel(0, 300);
-          await this.page.waitForTimeout(300);
-          visible = await chatItem.first().isVisible().catch(() => false);
-          if (visible) break;
+      if (isChatEmpty) {
+        console.log(`[${retryCount}] Chat list empty, performing search...`);
+        await searchInput.waitFor({ state: 'visible', timeout: 20000 });
+        await searchInput.fill('');
+        await this.page.waitForTimeout(300);
+        await searchInput.fill(creatorName);
+        await this.page.waitForTimeout(1500);
+
+        const suggestionVisible = await suggestionOption.isVisible({ timeout: 2000 }).catch(() => false);
+        if (suggestionVisible) {
+          await suggestionOption.click({ force: true });
+          await this.page.waitForTimeout(500);
+        } else {
+          throw new Error(`No suggestion found for "${creatorName}"`);
         }
+
+      } else {
+        console.log(`[${retryCount}] Chat list not empty, finding creator directly...`);
+
+        // 🛠️ Use the helper to locate and click chat item
+        await clickChatByCreatorName(this.page, creatorName);
+        await this.page.waitForTimeout(1000); // Keep your original delay
       }
 
-      if (visible) {
-        await chatItem.first().click({ force: true });
-        await this.page.waitForTimeout(3000);
-      } else {
-        throw new Error(`Could not find chat for "${creatorName}"`);
-      }
+    } catch (error) {
+      console.error(`[${retryCount}] chatWithCreator failed: ${error.message}`);
+      throw error;
     }
 
     // Verify chat loaded successfully
@@ -173,7 +170,7 @@ async scrollToBottom() {
     await this.page.waitForTimeout(2000);
   }
 
-  // Free Mass Messages
+// Free Mass Messages
 async sendMassMessageFromData({ type, content }) {
   let messageToSend = content || generateRandomMessage(); // Use provided content or generate random message
 
@@ -205,18 +202,6 @@ async sendMassMessageFromData({ type, content }) {
         await this.page.screenshot({ path: `error_fill_message_${type}.png` });
         throw new Error(`Failed to fill message text: ${error.message}`);
       }
-
-      // // Save the message to file (used by fan test)
-      // const savePath = path.resolve(__dirname, '../data/lastSentMessage.json');
-      // try {
-      //   fs.writeFileSync(savePath, JSON.stringify({ message: messageToSend }, null, 2), 'utf-8');
-      //   console.log(`Saved sent message to: ${savePath}`);
-      // } catch (error) {
-      //   console.error('Failed to save the sent message to file:', error.message);
-      //   await this.page.screenshot({ path: `error_save_message_${type}.png` });
-      //   throw new Error(`Failed to save message to file: ${error.message}`);
-      // }
-
     } else {
       // 'Get Started' not visible
       console.error('Get Started option not visible within timeout');
@@ -269,9 +254,10 @@ async sendMassMediaVault({ type }) {
       // Select the vault media file (checkbox/radio)
       const mediaInputLocator = this.page.locator("(//input[contains(@id, 'checkboxNoLabel')])[2]");
       try {
-        await mediaInputLocator.waitFor({ state: 'visible', timeout: 10000 });
+        await mediaInputLocator.waitFor({ state: 'visible', timeout: 2000 });
         const isChecked = await mediaInputLocator.isChecked();
         if (!isChecked) {
+          await this.page.waitForTimeout(2000);
           await mediaInputLocator.click();
           console.log('Radio button clicked successfully');
         } else {
@@ -345,7 +331,9 @@ async sendMassMediaVault({ type }) {
           console.log(`Attempting to locate and click Send button (Attempt ${attempt})`);
           await this.page.waitForTimeout(3000);
 
-          this.sendButton = this.page.locator("button[data-sentry-component='ActionButton']:has-text('Send'):not([disabled])").first();
+          // Define all locators here
+          
+          this.sendButton = page.locator('button:has-text("Send")');
           const count = await this.sendButton.count();
           if (count === 0) throw new Error("Send button not found in DOM");
 
@@ -357,7 +345,7 @@ async sendMassMediaVault({ type }) {
             continue;
           }
 
-          await this.sendButton.scrollIntoViewIfNeeded();
+          await scrollDownPage(page); // defaults to 10 times
           await this.page.waitForTimeout(3000);
           await this.sendButton.click({ timeout: 10000 });
           console.log('Clicked Send button successfully');
@@ -522,16 +510,16 @@ async getLastReceivedMsgFromCreator(expectedMessage = '') {
 
             // Check visibility again after scroll attempts
             const checkVisibility = await this.page.evaluate((expectedText) => {
-              const messages = Array.from(document.querySelectorAll('div.bg-chat-receiver div.px-2.pt-1'));
-              const normalize = (text) => text.toLowerCase().replace(/\s+/g, ' ').trim();
-              const targetText = normalize(expectedText);
+            const messages = Array.from(document.querySelectorAll('div.bg-chat-receiver div.px-2.pt-1'));
+            const normalize = (text) => text.toLowerCase().replace(/\s+/g, ' ').trim();
+            const targetText = normalize(expectedText);
 
-              const target = messages.find(el => normalize(el.innerText || '').includes(targetText));
-              if (!target) return false;
+            const target = messages.find(el => normalize(el.innerText || '').includes(targetText));
+            if (!target) return false;
 
               const rect = target.getBoundingClientRect();
 
-              return (
+            return (
                 rect.top >= 0 &&
                 rect.bottom <= window.innerHeight &&
                 rect.left >= 0 &&
@@ -792,7 +780,7 @@ async receivedVaultMedia(fanEmail) {
 
 async submitForm() {
   await this.page.waitForTimeout(1000);
-  await this.sendButton.scrollIntoViewIfNeeded();
+  
   await expect(this.sendButton).toBeVisible({ timeout: 10000 });
   await expect(this.sendButton).toBeEnabled({ timeout: 10000 });
   await this.sendButton.click();

@@ -7,9 +7,7 @@ const { BasePage } = require('../pages/BasePage');
 const { SigninPage } = require('../pages/SigninPage');
 const { ChatPage } = require('../pages/ChatPage');
 
-
 require('dotenv').config({ path: './.env' });
-
 
 // Ensure environment variables are loaded
 const BASE_URL = process.env.BASE_URL;
@@ -23,7 +21,7 @@ const chatData = getTestData('./data/testData.xlsx', 'massMsgSend_Data');
 const fanData = getTestData('./data/testData.xlsx', 'users_LoginData');
 
 // Playwright setup
-test.use({ viewport: { width: 1600, height: 900 } });
+test.use({ viewport: { width: 1400, height: 700 } });
 test.setTimeout(12000); // Increase timeout for slow tests
 
 // Helper function to handle error logging and screenshot
@@ -166,7 +164,6 @@ fanData.forEach((fan, index) => {
     
     
 // Playwright setup
-    test.use({ viewport: { width: 1600, height: 900 } });
     test.setTimeout(240000);  // Set timeout to 4 minutes
 
     const context = await browser.newContext();
