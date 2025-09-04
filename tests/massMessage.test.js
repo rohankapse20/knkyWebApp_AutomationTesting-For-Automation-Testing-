@@ -161,6 +161,10 @@ try {
 
 fanData.forEach((fan, index) => {
   test(`Verify message visible to fan #${index + 1} - ${fan.FanEmail}`, async ({ browser }) => {
+   
+   
+    // Playwright setup
+    test.use({ viewport: { width: 1600, height: 900 } });
     test.setTimeout(300_000); // 5 minutes
 
     const messagePath = path.resolve(__dirname, '../data/lastSentMessage.json');
@@ -195,8 +199,8 @@ try {
 
  // Assuming this is inside your fan test function async context
 
-await chat.navigateToChat();
-await chat.chatWithCreator();
+  await chat.navigateToChat();
+  await chat.chatWithCreator();
 
 // let messageFound = false;
 // let messagePartiallyVisible = false;
@@ -224,6 +228,11 @@ await chat.chatWithCreator();
 
   });
 });
+
+
+
+
+
 
 // fanData.forEach((fan, index) => {
 //   test(`Verify message visible to fan #${index + 1} - ${fan.FanEmail}`, async ({ browser }) => {

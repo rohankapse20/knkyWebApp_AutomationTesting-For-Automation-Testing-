@@ -3,6 +3,8 @@ const { test, expect } = require('@playwright/test');
 const { getTestData } = require('../utils/readExcel');
 const { BasePage } = require('../pages/BasePage');
 const { SigninPage } = require('../pages/SigninPage');
+// const { generatePhrase } = require('../utils/helpers');
+
 
 const signinData = getTestData('./data/testData.xlsx', 'signin_data');
 
@@ -18,12 +20,7 @@ test.describe('Signin Tests', () => {
       const base = new BasePage(page);  // no need to pass baseURL
       const signin = new SigninPage(page);
 
-      // Generate random message for testing (optional)
-      const { generatePhrase } = require('../utils/helpers');
-      const phrase = await generatePhrase();
-      console.log(`Generated phrase: ${phrase}`);
-
-
+      
       // Navigate to base URL and handle pre-login flows
       await base.navigate();
 
