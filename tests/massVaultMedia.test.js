@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
-const { generateRandomMessage } = require('../utils/helpers');
+// const { generateRandomMessage } = require('../utils/helpers');
 const { getTestData } = require('../utils/readExcel');
 const { BasePage } = require('../pages/BasePage');
 const { SigninPage } = require('../pages/SigninPage');
@@ -46,22 +46,22 @@ chatData.forEach((dataRow, index) => {
     const signin = new SigninPage(page);
     const chat = new ChatPage(page);
 
-    let phrase;
-    try {
-      phrase = generateRandomMessage(); // Generate random message
-      console.log(`Generated phrase: ${phrase}`);
-    } catch (error) {
-      await handleError(page, index, 'Generate Random Message', error);
-    }
+    // let phrase;
+    // try {
+    //   // phrase = generateRandomMessage(); // Generate random message
+    //   console.log(`Generated phrase: ${phrase}`);
+    // } catch (error) {
+    //   await handleError(page, index, 'Generate Random Message', error);
+    // }
 
-    // Write message to JSON for fan verification
-    const messagePath = path.resolve(__dirname, '../data/lastSentMessage.json');
-    try {
-      fs.writeFileSync(messagePath, JSON.stringify({ message: phrase }, null, 2));
-      console.log(`Message written to: ${messagePath}`);
-    } catch (error) {
-      await handleError(page, index, 'Write Message to JSON', error);
-    }
+    // // Write message to JSON for fan verification
+    // // const messagePath = path.resolve(__dirname, '../data/lastSentMessage.json');
+    // // try {
+    // //   fs.writeFileSync(messagePath, JSON.stringify({ message: phrase }, null, 2));
+    // //   console.log(`Message written to: ${messagePath}`);
+    // // } catch (error) {
+    // //   await handleError(page, index, 'Write Message to JSON', error);
+    // // }
 
     // Login and Send Mass Message Process
     try {
