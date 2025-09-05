@@ -165,6 +165,65 @@ async function safeClick(page, locator, screenshotName = 'click_error') {
 }
 
 
+// Click on enable button
+export async function clickEnabledButtonWithRetry(page, buttonText, maxRetries = 3, screenshotPrefix = 'click_button') {
+  let attempt = 0;
+  let clicked = false;
+
+  while (attempt < maxRetries && !clicked) {
+    try {
+      attempt++;
+      console.log(`Attempt ${attempt}: Finding and clicking button with text "${buttonText}"`);
+      await page.waitForTimeout(1000); // short wait between retries
+
+      const allButtons = page.locator('button', { hasText: buttonText });
+      const count = await allButtons.count();
+
+      if (count === 0) {
+        console.warn(`No button with text "${buttonText}" found on the page.`);
+        continue;
+      }
+
+      console.log(`Found ${count} button(s) with text "${buttonText}"`);
+
+      for (let i = 0; i < count; i++) {
+        const button = allButtons.nth(i);
+        const isVisible = await button.isVisible();
+        const isEnabled = await button.isEnabled();
+
+        console.log(`Button #${i + 1} → Visible: ${isVisible}, Enabled: ${isEnabled}`);
+
+        if (isVisible && isEnabled) {
+          await button.scrollIntoViewIfNeeded();
+          await button.waitForElementState('visible');
+          await button.waitForElementState('enabled');
+          await button.click({ timeout: 10000 });
+          console.log(`Successfully clicked button #${i + 1} with text "${buttonText}"`);
+          clicked = true;
+          break;
+        }
+      }
+
+      if (!clicked) {
+        throw new Error(`All "${buttonText}" buttons were either hidden or disabled`);
+      }
+
+    } catch (error) {
+      console.error(`Attempt ${attempt} failed: ${error.message}`);
+      await page.screenshot({
+        path: `${screenshotPrefix}_attempt_${attempt}.png`,
+        fullPage: true,
+      });
+
+      if (attempt === maxRetries) {
+        throw new Error(`Failed to click "${buttonText}" button after ${maxRetries} retries`);
+      }
+    }
+  }
+}
+
+
+
 // Scroll through chat list to find and click chat by creator name
 async function clickChatByCreatorName(page, creatorName) {
   const chatItem = page.locator(

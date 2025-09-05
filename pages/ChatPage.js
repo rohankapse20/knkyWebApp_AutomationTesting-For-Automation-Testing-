@@ -4,8 +4,8 @@ const path = require('path');
 const { generateRandomMessage } = require('../utils/helpers.js');
 const { clickChatByCreatorName } = require('../utils/helpers.js');
 
-
 const { safeClick } = require('../utils/helpers.js');
+
 
 class ChatPage {
   constructor(page) {
@@ -28,6 +28,7 @@ class ChatPage {
     this.successCloseButton = this.page.locator("//button[contains(@class, 'swal2-confirm') and normalize-space(text())='Close']");
 
  
+
   }
 
 async navigateToChat() {
@@ -320,45 +321,62 @@ async sendMassMediaVault({ type }) {
         throw new Error(`Failed to set Pay-to-view price: ${error.message}`);
       }
 
-      // Wait for Send button and Retry Logic
-      const MAX_RETRIES = 5;
-      let attempt = 0;
-      let sendClicked = false;
+// Click on send button with checking send text in Dom
+const MAX_RETRIES = 3;
+let attempt = 0;
+let sendClicked = false;
 
-      while (attempt < MAX_RETRIES && !sendClicked) {
-        try {
-          attempt++;
-          console.log(`Attempting to locate and click Send button (Attempt ${attempt})`);
-          await this.page.waitForTimeout(3000);
+while (attempt < MAX_RETRIES && !sendClicked) {
+  try {
+    attempt++;
+    console.log(`Attempt ${attempt}: Locating correct Send button...`);
+    await this.page.waitForTimeout(1000);
 
-          // Define all locators here
-          
-          this.sendButton = page.locator('button:has-text("Send")');
-          const count = await this.sendButton.count();
-          if (count === 0) throw new Error("Send button not found in DOM");
+    const allButtons = this.page.locator('button:has-text("Send")');
+    const count = await allButtons.count();
 
-          const isVisible = await this.sendButton.isVisible();
-          const isEnabled = await this.sendButton.isEnabled();
+    console.log(`Found ${count} "Send" buttons. Evaluating which one is enabled and visible...`);
 
-          if (!isVisible || !isEnabled) {
-            console.warn(`Send button not ready (visible: ${isVisible}, enabled: ${isEnabled})`);
-            continue;
-          }
+    let buttonClicked = false;
 
-          await scrollDownPage(page); // defaults to 10 times
-          await this.page.waitForTimeout(3000);
-          await this.sendButton.click({ timeout: 10000 });
-          console.log('Clicked Send button successfully');
-          sendClicked = true;
-        } catch (error) {
-          console.error(`Send button click failed on attempt ${attempt}: ${error.message}`);
-          await this.page.screenshot({ path: `send_button_attempt_${attempt}_${type}.png`, fullPage: true });
-          if (attempt === MAX_RETRIES) {
-            throw new Error('Failed to click Send button after max retries');
-          }
-        }
+    for (let i = 0; i < count; i++) {
+      const button = allButtons.nth(i);
+      const isVisible = await button.isVisible();
+      const isEnabled = await button.isEnabled();
+
+      console.log(`Send button #${i + 1} → Visible: ${isVisible}, Enabled: ${isEnabled}`);
+
+      if (isVisible && isEnabled) {
+        await button.scrollIntoViewIfNeeded();
+        await expect(button).toBeVisible();  
+        await expect(button).toBeEnabled();  
+        await button.click({ timeout: 10000 });
+
+        console.log(`Clicked on Send button #${i + 1}`);
+        sendClicked = true;
+        buttonClicked = true;
+        break;
       }
-    } else {
+    }
+
+    if (!buttonClicked) {
+      throw new Error("No enabled and visible Send button found");
+    }
+
+  } catch (error) {
+    console.error(`Send button click failed on attempt ${attempt}: ${error.message}`);
+    await this.page.screenshot({
+      path: `send_button_attempt_${attempt}_${type || 'default'}.png`,
+      fullPage: true
+    });
+
+    if (attempt === MAX_RETRIES) {
+      throw new Error('Failed to click Send button after max retries');
+    }
+  }
+}
+}
+else {
       await this.page.screenshot({ path: `error_get_started_not_visible_${type}.png`, fullPage: true });
       throw new Error('Get Started option not visible');
     }
@@ -371,6 +389,7 @@ async sendMassMediaVault({ type }) {
 
 async selectSendDetails() {
   try {
+
     // For Followers Select
     await this.followersCheckbox.waitFor({ state: 'visible', timeout: 10000 });
     await expect(this.followersCheckbox).toBeEnabled();
@@ -778,12 +797,62 @@ async receivedVaultMedia(fanEmail) {
 
 
 
-async submitForm() {
-  await this.page.waitForTimeout(1000);
-  
-  await expect(this.sendButton).toBeVisible({ timeout: 10000 });
-  await expect(this.sendButton).toBeEnabled({ timeout: 10000 });
-  await this.sendButton.click();
+async sendBtnForm() {
+
+// Click on send button with checking send text in Dom
+const MAX_RETRIES = 3;
+let attempt = 0;
+let sendClicked = false;
+
+while (attempt < MAX_RETRIES && !sendClicked) {
+  try {
+    attempt++;
+    console.log(`Attempt ${attempt}: Locating correct Send button...`);
+    await this.page.waitForTimeout(1500);
+
+    const allButtons = this.page.locator('button:has-text("Send")');
+    const count = await allButtons.count();
+
+    console.log(`Found ${count} "Send" buttons. Evaluating which one is enabled and visible...`);
+
+    let buttonClicked = false;
+
+    for (let i = 0; i < count; i++) {
+      const button = allButtons.nth(i);
+      const isVisible = await button.isVisible();
+      const isEnabled = await button.isEnabled();
+
+      console.log(`Send button #${i + 1} → Visible: ${isVisible}, Enabled: ${isEnabled}`);
+
+      if (isVisible && isEnabled) {
+        await button.scrollIntoViewIfNeeded();
+        await expect(button).toBeVisible();  
+        await expect(button).toBeEnabled();  
+        await button.click({ timeout: 10000 });
+
+        console.log(`Clicked on Send button #${i + 1}`);
+        sendClicked = true;
+        buttonClicked = true;
+        break;
+      }
+    }
+
+    if (!buttonClicked) {
+      throw new Error("No enabled and visible Send button found");
+    }
+
+  } catch (error) {
+    console.error(`Send button click failed on attempt ${attempt}: ${error.message}`);
+    await this.page.screenshot({
+      path: `send_button_attempt_${attempt}_${type || 'default'}.png`,
+      fullPage: true
+    });
+
+    if (attempt === MAX_RETRIES) {
+      throw new Error('Failed to click Send button after max retries');
+    }
+  }
+}
 }
 
 async waitForSuccessPopup() {

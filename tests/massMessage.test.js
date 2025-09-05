@@ -115,8 +115,8 @@ try {
 
 // Submit the Mass message form
 try {
-  // Click submit
-  await chat.submitForm();
+  // Click send button
+  await chat.sendBtnForm();
 
   // Wait for success popup to appear
   await chat.waitForSuccessPopup({ timeout: 15000 });
