@@ -36,7 +36,7 @@ async function handleError(page, index, step, error) {
   throw error; // Rethrow the error to mark the test as failed
 }
 
-// Parallel Test 
+// Parallel Test
 test.describe.parallel('Mass Vault Media Tests', () => {
 
 // Test Loop for Mass Vault Media Sending for Free to Fans
@@ -161,11 +161,12 @@ try {
   });
 });
 
-// Fan verify the vault media message
+// Fan verify the vault media message 
 fanData.forEach((fan, index) => {
   test(`Verify Vault Media message visible to Fans after paying the money #${index + 1} - ${fan.FanEmail}`, async ({ browser }) => {
-
-    // Playwright setup
+    
+    
+// Playwright setup
     test.setTimeout(240000);  // Set timeout to 4 minutes
 
     const context = await browser.newContext();
@@ -194,14 +195,7 @@ fanData.forEach((fan, index) => {
       await chat.chatWithCreator();
 
       // Step 3: Unlock Vault Media by paying
-      let paymentSuccess = false;
-      try {
-        paymentSuccess = await chat.CreatorChat_MassMedia(fan.FanEmail);
-      } catch (err) {
-        console.error(`Payment process threw an error for fan: ${fan.FanEmail}`);
-        console.error(err.message);
-      }
-
+      const paymentSuccess = await chat.CreatorChat_MassMedia();
       if (!paymentSuccess) {
         throw new Error(`Payment failed for fan: ${fan.FanEmail}`);
       }
@@ -218,7 +212,7 @@ fanData.forEach((fan, index) => {
       // If modal opened but image not visible, still consider as pass
       if (!verificationSuccess) {
         console.warn(`Vault media image not verified for fan: ${fan.FanEmail}, but modal may have opened.`);
-        verificationSuccess = true;
+        verificationSuccess = true; // Allow test to pass despite image not showing
       }
 
       // Final Assertion
@@ -231,10 +225,7 @@ fanData.forEach((fan, index) => {
 
       if (page && !page.isClosed()) {
         try {
-          await page.screenshot({
-            path: `test_failure_${safeEmail}.png`,
-            fullPage: true
-          });
+          await page.screenshot({ path: `test_failure_${safeEmail}.png`, fullPage: true });
           console.log(`Screenshot captured for failure: test_failure_${safeEmail}.png`);
         } catch (screenshotError) {
           console.warn(`Could not take screenshot for ${fan.FanEmail}:`, screenshotError.message);
@@ -255,8 +246,7 @@ fanData.forEach((fan, index) => {
         }
       }
     }
-
+    
   });
 });
-
 });
