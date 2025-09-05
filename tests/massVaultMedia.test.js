@@ -36,6 +36,9 @@ async function handleError(page, index, step, error) {
   throw error; // Rethrow the error to mark the test as failed
 }
 
+// Parallel Test 
+test.describe.parallel('Mass Vault Media Tests', () => {
+
 // Test Loop for Mass Vault Media Sending for Free to Fans
 // Free Vault Media Messages
 chatData.forEach((dataRow, index) => {
@@ -244,5 +247,8 @@ fanData.forEach((fan, index) => {
       }
     }
     
+
   });
+});
+
 });

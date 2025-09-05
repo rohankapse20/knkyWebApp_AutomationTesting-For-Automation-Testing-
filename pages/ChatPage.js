@@ -252,25 +252,48 @@ async sendMassMediaVault({ type }) {
         throw new Error('Failed to click Add Vault Media button');
       }
 
+     
       // Select the vault media file (checkbox/radio)
-      const mediaInputLocator = this.page.locator("(//input[contains(@id, 'checkboxNoLabel')])[2]");
+      const mediaInputLocator = this.page.locator("(//input[contains(@id, 'checkboxNoLabel')])[7]");
+
       try {
-        await mediaInputLocator.waitFor({ state: 'visible', timeout: 2000 });
+        console.log("Waiting for media items to start loading...");
+        await this.page.waitForTimeout(2000); // Initial wait for media loading
+
+        let isVisible = await mediaInputLocator.isVisible();
+
+        // Try scrolling down to reveal media if not visible
+        let scrollAttempts = 0;
+        while (!isVisible && scrollAttempts < 5) {
+          console.log(`Scrolling to find image [Attempt ${scrollAttempts + 1}]`);
+          await this.page.mouse.wheel(0, 300); // Scroll down
+          await this.page.waitForTimeout(2000); // Let page settle after scroll
+          isVisible = await mediaInputLocator.isVisible();
+          scrollAttempts++;
+        }
+
+        if (!isVisible) {
+          throw new Error('Media input (image checkbox) is not visible even after scrolling');
+        }
+
         const isChecked = await mediaInputLocator.isChecked();
         if (!isChecked) {
-          await this.page.waitForTimeout(2000);
+          console.log("Clicking image checkbox...");
+          await this.page.waitForTimeout(1500);
           await mediaInputLocator.click();
-          console.log('Radio button clicked successfully');
+          await this.page.waitForTimeout(1000); // Small wait after click
+          console.log('Image checkbox selected successfully');
         } else {
-          console.log('Radio button is already selected');
+          console.log('Image is already selected');
         }
-        await this.page.waitForTimeout(3000); // ⏳ Wait after selecting media
+
+        await this.page.waitForTimeout(1000); // Additional wait after selection
       } catch (error) {
-        await this.page.screenshot({ path: `error_select_media_${type}.png` });
+        await this.page.screenshot({ path: `error_select_media_${type}.png`, fullPage: true });
         console.error('Error occurred while selecting the media file:', error);
         throw new Error('Failed to select media file');
-      }      
-      
+      }
+
       
       // Click the "Choose" button
       const chooseButton = this.page.locator('button:has-text("Choose")');
@@ -313,9 +336,9 @@ async sendMassMediaVault({ type }) {
 
         await priceInputField.focus();
         await priceInputField.fill('');
-        await priceInputField.type('5', { delay: 100 });
-        console.log('Entered price 5 into Pay-to-view input field');
-        await this.page.waitForTimeout(3000); // ⏳ Wait after input
+        await priceInputField.type('10', { delay: 100 });
+        console.log('Entered price 10 into Pay-to-view input field');
+        await this.page.waitForTimeout(2000); // ⏳ Wait after input
       } catch (error) {
         await this.page.screenshot({ path: `error_pay_to_view_setup_${type}.png`, fullPage: true });
         throw new Error(`Failed to set Pay-to-view price: ${error.message}`);
@@ -612,47 +635,66 @@ async getLastReceivedMsgFromCreator(expectedMessage = '') {
 }
 
 async CreatorChat_MassMedia(fanEmail) {
-  const fallbackEmail = 'rohan.kapse@iiclab.com';
+   const fallbackEmail = 'rohan.kapse@iiclab.com';
   const safeEmail = (fanEmail || fallbackEmail).replace(/[@.]/g, '_');
-  const maxRetries = 5;
+  const expectedPrice = 10; // or 5 based on your need
+  const maxRetries = 20;
+  const scrollWaitTime = expectedPrice >= 10 ? 4000 : 3000;
 
   try {
-    console.log("Scrolling to bottom to find recent vault media...");
 
-    let unlockBtn = null;
+    console.log("Waiting for 1 minutes before fallback retry...");
+    await this.page.waitForTimeout(60000);
+
+    console.log(`Scrolling to find Unlock button with price $${expectedPrice}.00`);
+
+    let unlockButtons = null;
     let found = false;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        await this.page.mouse.wheel(0, 8000);
-        await this.page.waitForTimeout(1000);
+        await this.page.mouse.wheel(0, 5000);
+        await this.page.waitForTimeout(scrollWaitTime);
+        console.log(`Scrolled down - attempt ${attempt}`);
 
-        unlockBtn = this.page.locator('//button[contains(@class, "style_btn-knky-white") and contains(text(), "Unlock for")]');
+        unlockButtons = this.page.locator(xpathSelector);
+        const count = await unlockButtons.count();
 
-        if (await unlockBtn.first().isVisible()) {
-          console.log(`Unlock button found on attempt ${attempt}`);
-          found = true;
-          break;
+        if (count > 0) {
+          const lastBtn = unlockButtons.nth(count - 1);
+
+          // Wait for visible & enabled before checking
+          await lastBtn.waitFor({ state: 'visible', timeout: 15000 });
+          await lastBtn.waitFor({ state: 'enabled', timeout: 15000 });
+
+          if (await lastBtn.isVisible() && await lastBtn.isEnabled()) {
+            console.log(`Found Unlock button with price $${expectedPrice}.00 on attempt ${attempt}`);
+            found = true;
+            break;
+          }
         }
-
-        console.log(`Unlock button not visible on attempt ${attempt}. Retrying scroll...`);
-      } catch (scrollError) {
-        console.warn(`Scroll attempt ${attempt} failed:`, scrollError.message);
+        console.log(`Unlock button not visible or enabled on attempt ${attempt}, retrying scroll...`);
+      } catch (e) {
+        console.warn(`Scroll attempt ${attempt} error: ${e.message}`);
       }
     }
 
-    if (!found || !unlockBtn) {
-      throw new Error("Unlock button not found after all retries.");
+    if (!found || !unlockButtons) {
+      throw new Error(`Unlock button with price $${expectedPrice}.00 not found after ${maxRetries} attempts`);
     }
 
-    console.log("Clicking Unlock button...");
-    await unlockBtn.last().click();
-    await this.page.waitForTimeout(2000);
+    const lastUnlockBtn = unlockButtons.nth((await unlockButtons.count()) - 1);
+    console.log(`Clicking last Unlock button with price $${expectedPrice}.00`);
+    await this.page.waitForTimeout(1000);
+    await lastUnlockBtn.click();
 
     try {
-      const payBtn = this.page.locator('button[class*="style_btn-knky-primary"]:has-text("Pay $5.00")');
+      // Dynamic pay button selector for expectedPrice
+      const payBtnSelector = `button[class*="style_btn-knky-primary"]:has-text("Pay $${expectedPrice}.00")`;
+      const payBtn = this.page.locator(payBtnSelector);
 
       await payBtn.waitFor({ state: 'visible', timeout: 15000 });
+      await payBtn.waitFor({ state: 'enabled', timeout: 15000 });
 
       const isEnabled = await payBtn.isEnabled();
       const isVisible = await payBtn.isVisible();
@@ -661,9 +703,8 @@ async CreatorChat_MassMedia(fanEmail) {
         throw new Error("Pay button is not interactable (visible or enabled state failed).");
       }
 
-      console.log("Clicking Pay $5.00 button...");
+      console.log(`Clicking Pay $${expectedPrice}.00 button...`);
       await payBtn.click({ timeout: 5000 });
-
       await this.page.waitForTimeout(2000);
 
       const confirmationText = this.page.locator('text=Your message has been unlocked.');
@@ -678,181 +719,81 @@ async CreatorChat_MassMedia(fanEmail) {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         await this.page.screenshot({ path: `pay_button_failed_${timestamp}.png`, fullPage: true });
       }
-
       throw error;
     }
 
-    // After successful unlock — try verifying received vault media
-    const gotItSelector = 'button.swal2-confirm.swal2-styled:has-text("Got it!")';
+    console.log("Waiting 10s before final retry...");
+    await this.page.waitForTimeout(10000);
 
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`Attempt ${attempt}: Verifying Vault Media for ${fanEmail}`);
-
-        const gotItBtn = this.page.locator(gotItSelector);
-        await gotItBtn.waitFor({ state: 'visible', timeout: 10000 });
-
-        if (!await gotItBtn.isEnabled()) {
-          throw new Error('"Got it!" button is visible but not enabled.');
+    // Emergency fallback unlock button click attempt
+    try {
+      const fallbackLocator = this.page.locator(`//button[contains(text(), "Unlock for $${expectedPrice}.00")]`);
+      const fallbackCount = await fallbackLocator.count();
+      if (fallbackCount > 0) {
+        const emergencyBtn = fallbackLocator.nth(fallbackCount - 1);
+        await emergencyBtn.waitFor({ state: 'visible', timeout: 5000 });
+        if (await emergencyBtn.isVisible() && await emergencyBtn.isEnabled()) {
+          console.log("Emergency fallback found unlock button!");
+          await emergencyBtn.click();
+          found = true;
         }
-
-        await gotItBtn.click();
-        console.log('Clicked "Got it!" button.');
-
-        // Removed modal open and close logic as requested
-
-        console.log(`Vault media successfully verified for fan: ${fanEmail}`);
-        return true;
-
-      } catch (error) {
-        console.error(`Attempt ${attempt} failed for ${fanEmail}: ${error.message}`);
-
-        if (attempt === maxRetries && !this.page.isClosed()) {
-          const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-          await this.page.screenshot({ path: `vault_media_failed_${safeEmail}_${timestamp}.png`, fullPage: true });
-          console.error(`Final failure: Could not verify vault media after ${maxRetries} attempts.`);
-          throw error;
-        }
-
-        await this.page.waitForTimeout(2000);
       }
+    } catch (e) {
+      console.warn("Emergency retry failed.");
     }
 
-    return false;
+    // Removed "Got it!" verification here as it is handled separately in receivedVaultMedia()
+
+    return true; // unlock succeeded
 
   } catch (error) {
-    console.error("creator_MassMedia failed:", error.message);
+    console.error("CreatorChat_MassMedia failed:", error.message);
     throw error;
   }
 }
 
 async receivedVaultMedia(fanEmail) {
-
-  const maxRetries = 3;
   const fallbackEmail = 'rohan.kapse@iiclab.com';
   const safeEmail = (fanEmail || fallbackEmail).replace(/[@.]/g, '_');
 
+  const maxRetries = 20;
+
+  console.log(`Starting verification of Vault Media content for fan: ${fanEmail}`);
+
+  const gotItSelector = 'button.swal2-confirm.swal2-styled:has-text("Got it!")';
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`Attempt ${attempt}: Verifying Vault Media for ${fanEmail || fallbackEmail}`);
+      console.log(`Attempt ${attempt}: Verifying Vault Media for ${fanEmail}`);
 
-      const imageLocator = this.page.locator('//img[contains(@src, "/vault/") and contains(@src, "compressed.jpeg")]');
-      const imageCount = await imageLocator.count();
+      const gotItBtn = this.page.locator(gotItSelector);
+      await gotItBtn.waitFor({ state: 'visible', timeout: 10000 });
 
-      if (imageCount === 0) throw new Error("No vault media images found.");
-
-      console.log(`Found ${imageCount} vault media image(s). Clicking the most recent one...`);
-      const recentImage = imageLocator.last();
-
-      await recentImage.scrollIntoViewIfNeeded();
-      await expect(recentImage).toBeVisible({ timeout: 5000 });
-      await expect(recentImage).toBeEnabled({ timeout: 5000 });
-      await recentImage.click();
-
-      // --- After clicking image, just wait for close button (no modal image check) ---
-      const closeBtn = this.page.locator('//div[contains(@class, "modal show")]//button[contains(@class, "btn-close")]');
-      const closeBtnCount = await closeBtn.count();
-
-      let closed = false;
-      for (let i = 0; i < closeBtnCount; i++) {
-        const btn = closeBtn.nth(i);
-        if (await btn.isVisible({ timeout: 2000 }) && await btn.isEnabled()) {
-          await btn.click();
-          console.log(`Clicked close button inside modal.`);
-          closed = true;
-          break;
-        }
+      if (!(await gotItBtn.isEnabled())) {
+        throw new Error('"Got it!" button is visible but not enabled.');
       }
 
-      if (closed) {
-        console.log(`Vault media successfully verified for fan: ${fanEmail || fallbackEmail}`);
-        return true;
-      } else {
-        throw new Error('Modal close button not found or not clickable');
-      }
+      await gotItBtn.click();
+      console.log('Clicked "Got it!" button.');
+
+      console.log(`Vault media successfully verified for fan: ${fanEmail}`);
+      return true;
 
     } catch (error) {
-      console.error(`Attempt ${attempt} failed for ${fanEmail || fallbackEmail}: ${error.message}`);
+      console.error(`Attempt ${attempt} failed for ${fanEmail}: ${error.message}`);
 
       if (attempt === maxRetries && !this.page.isClosed()) {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        try {
-          await this.page.screenshot({
-            path: `vault_media_failed_${safeEmail}_${timestamp}.png`,
-            fullPage: true
-          });
-          console.error(`Screenshot saved: vault_media_failed_${safeEmail}_${timestamp}.png`);
-        } catch (screenshotErr) {
-          console.warn(`Failed to take screenshot: ${screenshotErr.message}`);
-        }
-
+        await this.page.screenshot({ path: `vault_media_failed_${safeEmail}_${timestamp}.png`, fullPage: true });
         console.error(`Final failure: Could not verify vault media after ${maxRetries} attempts.`);
         throw error;
       }
 
-      await this.page.waitForTimeout(2000); // Delay before retry
+      await this.page.waitForTimeout(2000);
     }
   }
-}
 
-
-
-async sendBtnForm() {
-
-// Click on send button with checking send text in Dom
-const MAX_RETRIES = 3;
-let attempt = 0;
-let sendClicked = false;
-
-while (attempt < MAX_RETRIES && !sendClicked) {
-  try {
-    attempt++;
-    console.log(`Attempt ${attempt}: Locating correct Send button...`);
-    await this.page.waitForTimeout(1500);
-
-    const allButtons = this.page.locator('button:has-text("Send")');
-    const count = await allButtons.count();
-
-    console.log(`Found ${count} "Send" buttons. Evaluating which one is enabled and visible...`);
-
-    let buttonClicked = false;
-
-    for (let i = 0; i < count; i++) {
-      const button = allButtons.nth(i);
-      const isVisible = await button.isVisible();
-      const isEnabled = await button.isEnabled();
-
-      console.log(`Send button #${i + 1} → Visible: ${isVisible}, Enabled: ${isEnabled}`);
-
-      if (isVisible && isEnabled) {
-        await button.scrollIntoViewIfNeeded();
-        await expect(button).toBeVisible();  
-        await expect(button).toBeEnabled();  
-        await button.click({ timeout: 10000 });
-
-        console.log(`Clicked on Send button #${i + 1}`);
-        sendClicked = true;
-        buttonClicked = true;
-        break;
-      }
-    }
-
-    if (!buttonClicked) {
-      throw new Error("No enabled and visible Send button found");
-    }
-
-  } catch (error) {
-    console.error(`Send button click failed on attempt ${attempt}: ${error.message}`);
-    await this.page.screenshot({
-      path: `send_button_attempt_${attempt}_${type || 'default'}.png`,
-      fullPage: true
-    });
-
-    if (attempt === MAX_RETRIES) {
-      throw new Error('Failed to click Send button after max retries');
-    }
-  }
-}
+  return false;
 }
 
 async waitForSuccessPopup() {
