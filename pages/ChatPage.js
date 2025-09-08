@@ -411,14 +411,13 @@ else {
 
 async selectSendDetails() {
   try {
-
     // For Followers Select
     await this.followersCheckbox.waitFor({ state: 'visible', timeout: 10000 });
     await expect(this.followersCheckbox).toBeEnabled();
     await this.followersCheckbox.check();
     console.log('Checked followers checkbox');
 
-    //For Active Subscribers Select
+    // For Active Subscribers Select
     const activeSubscribersCheckbox = this.page.locator("//input[@type='checkbox' and @id='subscribers']");
     await expect(activeSubscribersCheckbox).toBeEnabled();
     await activeSubscribersCheckbox.check();
@@ -431,6 +430,60 @@ async selectSendDetails() {
     console.error('Failed to select followers checkbox:', error.message);
     await this.page.screenshot({ path: 'error_followers_checkbox.png' });
     throw error;
+  }
+
+  const MAX_RETRIES = 3;
+  let attempt = 0;
+  let sendClicked = false;
+
+  while (attempt < MAX_RETRIES && !sendClicked) {
+    try {
+      attempt++;
+      console.log(`Attempt ${attempt}: Locating correct Send button...`);
+      await this.page.waitForTimeout(1000);
+
+      const allButtons = this.page.locator('button:has-text("Send")');
+      const count = await allButtons.count();
+
+      console.log(`Found ${count} "Send" buttons. Evaluating which one is enabled and visible...`);
+
+      let buttonClicked = false;
+
+      for (let i = 0; i < count; i++) {
+        const button = allButtons.nth(i);
+        const isVisible = await button.isVisible();
+        const isEnabled = await button.isEnabled();
+
+        console.log(`Send button #${i + 1} → Visible: ${isVisible}, Enabled: ${isEnabled}`);
+
+        if (isVisible && isEnabled) {
+          await button.scrollIntoViewIfNeeded();
+          await expect(button).toBeVisible();  
+          await expect(button).toBeEnabled();  
+          await button.click({ timeout: 10000 });
+
+          console.log(`Clicked on Send button #${i + 1}`);
+          sendClicked = true;
+          buttonClicked = true;
+          break;
+        }
+      }
+
+      if (!buttonClicked) {
+        throw new Error("No enabled and visible Send button found");
+      }
+
+    } catch (error) {
+      console.error(`Send button click failed on attempt ${attempt}: ${error.message}`);
+      await this.page.screenshot({
+        path: `send_button_attempt_${attempt}.png`,
+        fullPage: true
+      });
+
+      if (attempt === MAX_RETRIES) {
+        throw new Error('Failed to click Send button after max retries');
+      }
+    }
   }
 }
 
