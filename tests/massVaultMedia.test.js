@@ -164,9 +164,7 @@ try {
 // Fan verify the vault media message 
 fanData.forEach((fan, index) => {
   test(`Verify Vault Media message visible to Fans after paying the money #${index + 1} - ${fan.FanEmail}`, async ({ browser }) => {
-    
-    
-// Playwright setup
+
     test.setTimeout(240000);  // Set timeout to 4 minutes
 
     const context = await browser.newContext();
@@ -195,7 +193,7 @@ fanData.forEach((fan, index) => {
       await chat.chatWithCreator();
 
       // Step 3: Unlock Vault Media by paying
-      const paymentSuccess = await chat.CreatorChat_MassMedia();
+      const paymentSuccess = await chat.CreatorChat_MassMedia(fan.FanEmail); // ❗ corrected from receivedVaultMedia()
       if (!paymentSuccess) {
         throw new Error(`Payment failed for fan: ${fan.FanEmail}`);
       }
@@ -209,10 +207,8 @@ fanData.forEach((fan, index) => {
         console.warn(innerErr.message);
       }
 
-      // If modal opened but image not visible, still consider as pass
       if (!verificationSuccess) {
-        console.warn(`Vault media image not verified for fan: ${fan.FanEmail}, but modal may have opened.`);
-        verificationSuccess = true; // Allow test to pass despite image not showing
+        throw new Error(`Vault media not verified for fan: ${fan.FanEmail}`);
       }
 
       // Final Assertion
@@ -246,7 +242,8 @@ fanData.forEach((fan, index) => {
         }
       }
     }
-    
-  });
-});
+
+}); 
+}); 
+
 });
