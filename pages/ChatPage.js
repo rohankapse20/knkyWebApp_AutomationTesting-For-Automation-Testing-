@@ -524,6 +524,7 @@ async getLastReceivedMsgFromCreator(expectedMessage = '') {
     let isFullyVisible = false;
     let isPartiallyVisibleButHighlighted = false;
 
+
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       console.log(`Scroll & visibility check attempt #${attempt + 1}`);
 
