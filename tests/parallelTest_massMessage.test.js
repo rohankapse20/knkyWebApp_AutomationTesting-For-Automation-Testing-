@@ -42,7 +42,12 @@ test.describe.parallel('Mass Message Send and verify by Fan Tests', () => {
 // Free Messages
 
 chatData.forEach((dataRow, index) => {
-  test(`Mass message send test #${index + 1} - ${dataRow.CreatorEmail}`, async ({ page }) => {
+  test(`Mass message send test #${index + 1} - ${dataRow.CreatorEmail}`, async ({ browser }) => {
+
+    const context = await browser.newContext();
+    const page = await context.newPage();
+
+
     const base = new BasePage(page);
     const signin = new SigninPage(page);
     const chat = new ChatPage(page);
@@ -151,6 +156,8 @@ try {
   // Test passed
   console.log(`Mass ${messageType} message sent successfully by ${dataRow.CreatorEmail}`);
   expect(true).toBeTruthy();
+  await page.close();
+  await context.close();
 
 } catch (error) {
   await handleError(page, index, 'Submit Form', error);
@@ -163,6 +170,7 @@ try {
 
 fanData.forEach((fan, index) => {
   test(`Verify message visible to fan #${index + 1} - ${fan.FanEmail}`, async ({ browser }) => {
+
   
     test.setTimeout(300_000); // 5 minutes
 
@@ -196,14 +204,14 @@ try {
   await expect(welcomePopup).toBeVisible({ timeout: 20000 });
   console.log(`Logged in: ${fan.FanEmail}`);
 
- // Assuming this is inside your fan test function async context
+  // Assuming this is inside your fan test function async context
 
   await chat.navigateToChat();
   await chat.chatWithCreator();
-
-// let messageFound = false;
-// let messagePartiallyVisible = false;
-// let timeTaken = 0;
+ 
+  // let messageFound = false;
+  // let messagePartiallyVisible = false;
+  // let timeTaken = 0;
 
   let rawText = '';
 

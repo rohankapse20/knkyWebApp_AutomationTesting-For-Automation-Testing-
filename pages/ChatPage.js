@@ -219,7 +219,6 @@ async sendMassMessageFromData({ type, content }) {
   }
 }
 
-
 // Paid Media Vault Messages
 async sendMassMediaVault({ type }) {
   try {
