@@ -21,7 +21,7 @@ const chatData = getTestData('./data/testData.xlsx', 'massMsgSend_Data');
 const fanData = getTestData('./data/testData.xlsx', 'users_LoginData');
 
 // Playwright setup
-test.use({ viewport: { width: 1400, height: 700 } });
+test.use({ viewport: { width: 780, height: 700 } });
 test.setTimeout(12000); // Increase timeout for slow tests
 
 // Helper function to handle error logging and screenshot
@@ -198,22 +198,40 @@ fanData.forEach((fan, index) => {
         throw new Error(`Payment failed for fan: ${fan.FanEmail}`);
       }
 
-      // Step 4: Verify Vault Media is received and viewable
-      let verificationSuccess = false;
-      try {
-        verificationSuccess = await chat.receivedVaultMedia(fan.FanEmail);
-      } catch (innerErr) {
-        console.warn(`Vault media verification encountered an issue for fan: ${fan.FanEmail}`);
-        console.warn(innerErr.message);
+    // Step 4: Verify Vault Media is received and viewable
+    let verificationSuccess = false;
+    try {
+      verificationSuccess = await chat.receivedVaultMedia(fan.FanEmail);
+    } catch (innerErr) {
+      console.warn(`Vault media verification encountered an issue for fan: ${fan.FanEmail}`);
+      console.warn(innerErr.message);
+    }
+
+    if (!verificationSuccess) {
+      throw new Error(`Vault media not verified for fan: ${fan.FanEmail}`);
+    }
+
+    // Step 5: Confirm success message and close modal (optional UX steps)
+    try {
+      const confirmationText = page.locator('text=Your message has been unlocked.');
+      await confirmationText.waitFor({ state: 'visible', timeout: 5000 });
+      console.log('Success message confirmed.');
+
+      const finalCloseBtn = page.locator('button:has-text("Close"), button.swal2-close');
+      if (await finalCloseBtn.isVisible()) {
+        await finalCloseBtn.click();
+        console.log('Final modal closed.');
+      } else {
+        console.log('No final close button detected.');
       }
 
-      if (!verificationSuccess) {
-        throw new Error(`Vault media not verified for fan: ${fan.FanEmail}`);
-      }
+    } catch (extraStepErr) {
+      console.warn('Post-verification modal handling failed:', extraStepErr.message);
+    }
 
-      // Final Assertion
-      expect(verificationSuccess).toBe(true);
-      console.log(`Test passed for fan: ${fan.FanEmail}`);
+    // Final Assertion
+    expect(verificationSuccess).toBe(true);
+    console.log(`Test passed for fan: ${fan.FanEmail}`);
 
     } catch (error) {
       const safeEmail = fan.FanEmail.replace(/[@.]/g, "_");
@@ -230,7 +248,7 @@ fanData.forEach((fan, index) => {
         console.warn(`Cannot take screenshot — page is already closed.`);
       }
 
-      throw error; // rethrow to fail the test
+      throw error; // Rethrow to fail the test
 
     } finally {
       if (context && context.pages().length > 0) {
@@ -243,7 +261,8 @@ fanData.forEach((fan, index) => {
       }
     }
 
-}); 
-}); 
+      });
 
-});
+
+    });
+    });

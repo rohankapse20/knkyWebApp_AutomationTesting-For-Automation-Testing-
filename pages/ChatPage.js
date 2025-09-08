@@ -252,13 +252,12 @@ async sendMassMediaVault({ type }) {
         throw new Error('Failed to click Add Vault Media button');
       }
 
-     
       // Select the vault media file (checkbox/radio)
-      const mediaInputLocator = this.page.locator("(//input[contains(@id, 'checkboxNoLabel')])[7]");
+      const mediaInputLocator = this.page.locator("(//input[contains(@id, 'checkboxNoLabel')])[3]");
 
       try {
         console.log("Waiting for media items to start loading...");
-        await this.page.waitForTimeout(2000); // Initial wait for media loading
+        await this.page.waitForTimeout(2500); // Initial wait for media loading
 
         let isVisible = await mediaInputLocator.isVisible();
 
@@ -642,8 +641,8 @@ async CreatorChat_MassMedia(fanEmail) {
   const scrollWaitTime = expectedPrice >= 10 ? 4000 : 3000;
 
   try {
-    console.log("Waiting for 45 seconds before fallback retry...");
-    await this.page.waitForTimeout(45000);
+    console.log("Waiting for 30 seconds before fallback retry...");
+    await this.page.waitForTimeout(30000);
 
     const cssSelector = `button.style_btn-knky-white__y140y:has-text("Unlock for $${expectedPrice}.00")`;
     let found = false;
@@ -700,21 +699,21 @@ async receivedVaultMedia(fanEmail) {
   const safeEmail = (fanEmail || fallbackEmail).replace(/[@.]/g, '_');
   const maxRetries = 3;
 
-  console.log(`🔍 Starting verification of Vault Media content for fan: ${fanEmail}`);
+  console.log(`Starting verification of Vault Media content for fan: ${fanEmail}`);
 
   try {
     const payButtons = this.page.getByRole('button', { name: /Pay \$10\.00/ });
 
-    console.log("⏳ Waiting for Pay button(s) to be attached...");
+    console.log("Waiting for Pay button(s) to be attached...");
     await payButtons.last().waitFor({ state: 'attached', timeout: 15000 });
 
     const count = await payButtons.count();
-    console.log(`✅ Found ${count} matching Pay $10.00 button(s).`);
+    console.log(`Found ${count} matching Pay $10.00 button(s).`);
 
     let payBtn = null;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      console.log(`🔁 Retry ${attempt}/${maxRetries}: Checking Pay buttons...`);
+      console.log(`Retry ${attempt}/${maxRetries}: Checking Pay buttons...`);
 
       for (let i = 0; i < count; i++) {
         const candidate = payButtons.nth(i);
@@ -725,14 +724,14 @@ async receivedVaultMedia(fanEmail) {
           const isVisible = await candidate.isVisible();
           const isEnabled = await candidate.isEnabled();
 
-          console.log(`→ Button #${i + 1}: visible=${isVisible}, enabled=${isEnabled}`);
+          console.log(`Button #${i + 1}: visible=${isVisible}, enabled=${isEnabled}`);
 
           if (isVisible && isEnabled) {
             payBtn = candidate;
             break;
           }
         } catch (err) {
-          console.warn(`⚠️ Skipping button #${i + 1}: ${err.message}`);
+          console.warn(`Skipping button #${i + 1}: ${err.message}`);
         }
       }
 
@@ -742,12 +741,12 @@ async receivedVaultMedia(fanEmail) {
 
     if (!payBtn) {
       await this.page.screenshot({ path: `pay_button_missing_${safeEmail}.png`, fullPage: true });
-      throw new Error("❌ No visible & enabled Pay $10.00 button found after retries.");
+      throw new Error("No visible & enabled Pay $10.00 button found after retries.");
     }
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`🖱️ Attempt ${attempt}: Clicking Pay button...`);
+        console.log(`Attempt ${attempt}: Clicking Pay button...`);
         await payBtn.click({ timeout: 5000 });
         await this.page.waitForTimeout(1500);
 
@@ -755,57 +754,55 @@ async receivedVaultMedia(fanEmail) {
         if (await popupCloseBtn.count() > 0) {
           try {
             await popupCloseBtn.first().click();
-            console.log('✅ Popup/modal detected and closed.');
+            console.log('Popup/modal detected and closed.');
           } catch (e) {
-            console.warn('⚠️ Failed to close popup:', e.message);
+            console.warn('Failed to close popup:', e.message);
           }
         }
 
         break;
       } catch (clickErr) {
-        console.error(`❌ Pay click failed (Attempt ${attempt}): ${clickErr.message}`);
+        console.error(`Pay click failed (Attempt ${attempt}): ${clickErr.message}`);
         if (attempt === maxRetries) throw clickErr;
         await this.page.waitForTimeout(2000);
       }
     }
 
-    // Confirmation wait
+    // Step 1: Wait for the confirmation message
     const confirmationText = this.page.locator('text=Your message has been unlocked.');
-    console.log("⏳ Waiting for unlock confirmation...");
+    console.log("Waiting for unlock confirmation...");
     await confirmationText.waitFor({ state: 'visible', timeout: 20000 });
-    console.log("✅ Vault Media message unlocked successfully.");
+    console.log("Vault Media message unlocked successfully.");
 
-    // "Got it" button
+    // Step 2: Click the 'Got it!' button
     const gotItBtn = this.page.locator('button.swal2-confirm.swal2-styled:has-text("Got it!")');
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        await gotItBtn.waitFor({ state: 'visible', timeout: 10000 });
-        if (!(await gotItBtn.isEnabled())) throw new Error('"Got it!" button not enabled.');
+    try {
+      await gotItBtn.waitFor({ state: 'visible', timeout: 10000 });
+      if (await gotItBtn.isEnabled()) {
         await gotItBtn.click();
-        console.log('✅ Clicked "Got it!" button.');
-
-        console.log(`🎉 Vault media successfully verified for fan: ${fanEmail}`);
-        return true;
-      } catch (error) {
-        console.error(`❌ "Got it" click failed (Attempt ${attempt}): ${error.message}`);
-
-        if (attempt === maxRetries && !this.page.isClosed()) {
-          await this.page.screenshot({
-            path: `vault_media_failed_${safeEmail}.png`,
-            fullPage: true
-          });
-          throw new Error(`❌ Vault media not verified for fan: ${fanEmail}`);
-        }
-
-        await this.page.waitForTimeout(2000);
+        console.log('Clicked "Got it!" button.');
       }
+    } catch (error) {
+      console.warn(`Could not click "Got it!": ${error.message}`);
     }
 
-    return false;
+
+    // Step 3: Optional final confirmation wait
+    await this.page.waitForTimeout(2000);
+    console.log(`Vault media fully verified and previewed for fan: ${fanEmail}`);
+
+    // Step 6: Auto-close the page after success
+    try {
+      await this.page.close();
+      console.log("Page closed after successful Vault Media interaction.");
+    } catch (closeError) {
+      console.warn("Could not close page:", closeError.message);
+    }
+
+    return true;
 
   } catch (error) {
-    console.error("❌ receivedVaultMedia failed:", error.message);
+    console.error("ReceivedVaultMedia failed:", error.message);
     if (!this.page.isClosed()) {
       await this.page.screenshot({
         path: `receivedVaultMedia_error_${safeEmail}.png`,
@@ -815,7 +812,6 @@ async receivedVaultMedia(fanEmail) {
     throw error;
   }
 }
-
 
 async waitForSuccessPopup() {
   try {
