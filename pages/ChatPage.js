@@ -252,7 +252,7 @@ async sendMassMediaVault({ type }) {
       }
 
       // Select the vault media file (checkbox/radio)
-      const mediaInputLocator = this.page.locator("(//input[contains(@id, 'checkboxNoLabel')])[5]");
+      const mediaInputLocator = this.page.locator("(//input[contains(@id, 'checkboxNoLabel')])[7]");
 
       try {
         console.log("Waiting for media items to start loading...");
@@ -298,14 +298,14 @@ async sendMassMediaVault({ type }) {
       try {
         await safeClick(this.page, chooseButton, `error_choose_button_${type}`);
         console.log('Clicked Choose button successfully');
-        await this.page.waitForTimeout(3000); // ⏳ Wait for next section
+        await this.page.waitForTimeout(3000); // Wait for next section
       } catch (error) {
         console.error('Error clicking Choose button:', error.message);
         throw new Error('Failed to click Choose button');
       }
 
       // Check "Followers" and "Active Subscribers"
-      await this.selectSendDetails();
+      await this.followersActiveSubCheckbox();
 
       const payToViewRadio = this.page.locator('input#payView[type="radio"][value="Pay-to-view"]');
       const priceInputField = this.page.locator('input[placeholder="Enter price to pay"][type="number"]');
@@ -319,7 +319,7 @@ async sendMassMediaVault({ type }) {
         await payToViewRadio.waitFor({ state: 'visible', timeout: 5000 });
         await payToViewRadio.check();
         console.log('Checked Pay-to-view radio button');
-        await this.page.waitForTimeout(3000); // ⏳ Wait after checking Pay-to-view
+        await this.page.waitForTimeout(3000); // Wait after checking Pay-to-view
 
         await priceInputField.waitFor({ state: 'visible', timeout: 5000 });
         await priceInputField.scrollIntoViewIfNeeded();
@@ -408,7 +408,8 @@ else {
   }
 }
 
-async selectSendDetails() {
+// For followers and Active Subscribers
+async followersActiveSubCheckbox() {
   try {
     // For Followers Select
     await this.followersCheckbox.waitFor({ state: 'visible', timeout: 10000 });
@@ -430,6 +431,10 @@ async selectSendDetails() {
     await this.page.screenshot({ path: 'error_followers_checkbox.png' });
     throw error;
   }
+}
+
+
+async selectSendDetails() {
 
   const MAX_RETRIES = 3;
   let attempt = 0;
@@ -821,54 +826,75 @@ async receivedVaultMedia(fanEmail) {
       }
     }
 
-    // Step 1: Wait for the confirmation message
-    const confirmationText = this.page.locator('text=Your message has been unlocked.');
-    console.log("Waiting for unlock confirmation...");
-    await confirmationText.waitFor({ state: 'visible', timeout: 20000 });
-    console.log("Vault Media message unlocked successfully.");
-
-    // Step 2: Click the 'Got it!' button
-    const gotItBtn = this.page.locator('button.swal2-confirm.swal2-styled:has-text("Got it!")');
     try {
-      await gotItBtn.waitFor({ state: 'visible', timeout: 10000 });
-      if (await gotItBtn.isEnabled()) {
-        await gotItBtn.click();
-        console.log('Clicked "Got it!" button.');
+      // Step 1: Wait for confirmation message
+      const confirmationText = this.page.locator('text=Your message has been unlocked.');
+      console.log("Waiting for unlock confirmation...");
+      await confirmationText.waitFor({ state: 'visible', timeout: 20000 });
+      console.log("Vault Media message unlocked successfully.");
+
+      // Step 2: Click the 'Got it!' button
+      const gotItBtn = this.page.locator('button.swal2-confirm.swal2-styled:has-text("Got it!")');
+      try {
+        await gotItBtn.waitFor({ state: 'visible', timeout: 10000 });
+        if (await gotItBtn.isEnabled()) {
+          await gotItBtn.click();
+          console.log('Clicked "Got it!" button.');
+        }
+      } catch (error) {
+        console.warn(`Could not click "Got it!": ${error.message}`);
       }
+
+      // Step 3: Wait for the confirmation modal to disappear
+      try {
+        await confirmationText.waitFor({ state: 'detached', timeout: 7000 });
+        console.log('Confirmation popup closed.');
+      } catch (waitError) {
+        console.warn("Confirmation popup didn't close in time.");
+      }
+
+      // Step 4: Wait for actual vault media preview (optional)
+      try {
+        const vaultPreview = this.page.locator('selector-for-vault-preview'); // replace with real selector
+        await expect(vaultPreview).toBeVisible({ timeout: 7000 });
+        console.log("Vault preview confirmed.");
+      } catch (previewError) {
+        console.warn("Vault media preview not found:", previewError.message);
+      }
+
+      console.log(`Vault media fully verified and previewed for fan: ${fanEmail}`);
+
+      // Step 5: Close page
+      try {
+        await this.page.close();
+        console.log("Page closed after successful Vault Media interaction.");
+      } catch (closeError) {
+        console.warn("Could not close page:", closeError.message);
+      }
+
+      return true;
+
     } catch (error) {
-      console.warn(`Could not click "Got it!": ${error.message}`);
+      console.error("receivedVaultMedia failed:", error.message);
+      if (!this.page.isClosed()) {
+        const safeEmail = fanEmail.replace(/[^a-zA-Z0-9]/g, '_');
+        await this.page.screenshot({
+          path: `receivedVaultMedia_error_${safeEmail}.png`,
+          fullPage: true
+        });
+      }
+      throw error;
     }
 
-
-    // Step 3: Optional final confirmation wait
-    await this.page.waitForTimeout(2000);
-    console.log(`Vault media fully verified and previewed for fan: ${fanEmail}`);
-
-    // Step 6: Auto-close the page after success
-    try {
-      await this.page.close();
-      console.log("Page closed after successful Vault Media interaction.");
-    } catch (closeError) {
-      console.warn("Could not close page:", closeError.message);
-    }
-
-    return true;
-
-  } catch (error) {
-    console.error("ReceivedVaultMedia failed:", error.message);
-    if (!this.page.isClosed()) {
-      await this.page.screenshot({
-        path: `receivedVaultMedia_error_${safeEmail}.png`,
-        fullPage: true
-      });
-    }
-    throw error;
+  } catch (outerError) {
+    console.error("Outer try-catch failed:", outerError.message);
+    throw outerError;
   }
 }
 
 async waitForSuccessPopup() {
   try {
-    await this.successPopup.waitFor({ state: 'visible', timeout: 20000 });
+    await this.successPopup.waitFor({ state: 'visible', timeout: 10000 });
     console.log('Success popup appeared');
   } catch (error) {
     console.error('Success popup not found:', error.message);

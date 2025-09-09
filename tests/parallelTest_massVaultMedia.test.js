@@ -130,7 +130,7 @@ try {
 try {
   console.log('Closing success popup...');
   await chat.closeSuccessPopup();
-  await page.waitForTimeout(2000); // Wait after closing
+  await page.waitForTimeout(10000); // Wait after 10 Seconds closing
   console.log('Success popup closed.');
 } catch (error) {
   const path = `screenshots/error_closing_popup_${Date.now()}.png`;
@@ -261,8 +261,6 @@ fanData.forEach((fan, index) => {
       }
     }
 
-      });
-
-
-    });
-    });
+  });
+});
+});
