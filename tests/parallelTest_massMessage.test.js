@@ -170,7 +170,6 @@ try {
 
 fanData.forEach((fan, index) => {
   test(`Verify message visible to fan #${index + 1} - ${fan.FanEmail}`, async ({ browser }) => {
-
   
     test.setTimeout(300_000); // 5 minutes
 
