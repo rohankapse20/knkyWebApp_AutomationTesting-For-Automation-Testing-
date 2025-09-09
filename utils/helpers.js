@@ -223,7 +223,6 @@ export async function clickEnabledButtonWithRetry(page, buttonText, maxRetries =
 }
 
 
-
 // Scroll through chat list to find and click chat by creator name
 async function clickChatByCreatorName(page, creatorName) {
   const chatItem = page.locator(

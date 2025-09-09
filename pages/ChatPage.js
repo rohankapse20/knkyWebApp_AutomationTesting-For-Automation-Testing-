@@ -62,20 +62,20 @@ async navigateToChat() {
 
 async chatWithCreator(retryCount = 0) {
   const creatorName = 'PlayfulMistress';
-  const MAX_RETRIES = 1;
+  const MAX_RETRIES = 3;
 
   const searchInput = this.page.locator('#chat-search-box input[type="search"]');
   const emptyChatText = this.page.locator('text="Chat list is empty :("');
   const suggestionOption = this.page.locator(`//span[@class="profile-last-message" and normalize-space(text())="${creatorName}"]`);
-  const chatItem = this.page.locator(
-    `//div[contains(@class, 'chatList_chatItem__')][.//span[normalize-space(text())='${creatorName}']]`
-  );
+  // const chatItem = this.page.locator(
+  //   `//div[contains(@class, 'chatList_chatItem__')][.//span[normalize-space(text())='${creatorName}']]`
+  // );
 
   try {
     try {
-      console.log(`[${retryCount}] Starting chatWithCreator`);
       await this.page.waitForTimeout(2000);
-
+      console.log(`[${retryCount}] Starting chatWithCreator`);
+     
       let isChatEmpty = await emptyChatText.isVisible({ timeout: 5000 }).catch(() => false);
 
       if (isChatEmpty) {
@@ -97,9 +97,9 @@ async chatWithCreator(retryCount = 0) {
       } else {
         console.log(`[${retryCount}] Chat list not empty, finding creator directly...`);
 
-        // 🛠️ Use the helper to locate and click chat item
+        // Use the helper to locate and click chat item
         await clickChatByCreatorName(this.page, creatorName);
-        await this.page.waitForTimeout(1000); // Keep your original delay
+        await this.page.waitForTimeout(20000); // Wait for 20 seconds
       }
 
     } catch (error) {
@@ -252,7 +252,7 @@ async sendMassMediaVault({ type }) {
       }
 
       // Select the vault media file (checkbox/radio)
-      const mediaInputLocator = this.page.locator("(//input[contains(@id, 'checkboxNoLabel')])[7]");
+      const mediaInputLocator = this.page.locator("(//input[contains(@id, 'checkboxNoLabel')])[1]");
 
       try {
         console.log("Waiting for media items to start loading...");
@@ -493,202 +493,115 @@ async selectSendDetails() {
 
 
 async getLastReceivedMsgFromCreator(expectedMessage = '') {
-  try {
-    const messageLocator = this.page.locator('div.bg-chat-receiver div.px-2.pt-1').last();
-    await messageLocator.waitFor({ timeout: 20000 });
-    console.log('Last received message is initially visible.');
+  const maxRetries = 3;
+  let lastError = null;
+  let rawText = '';
 
-    // Ensure that any scroll issues are addressed by forcing visibility
-    await this.page.evaluate(() => {
-      const messages = Array.from(document.querySelectorAll('div.bg-chat-receiver div.px-2.pt-1'));
-      messages.forEach(msg => {
-        // Unhide the message text if it's hidden by overflow or clipping
-        msg.style.overflow = 'visible';
-        msg.style.maxHeight = 'none';
-        msg.style.display = 'block';
-      });
-    });
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`\n Attempt ${attempt} to verify received message...`);
 
-    await this.page.waitForTimeout(2000); // Let content load
+      const messageLocator = this.page.locator('div.bg-chat-receiver div.px-2.pt-1').last();
+      await messageLocator.waitFor({ timeout: 3000 });
 
-    const rawText = await messageLocator.innerText();
-    const normalizedReceived = rawText.replace(/\s+/g, ' ').trim().toLowerCase();
-    const normalizedExpected = expectedMessage.replace(/\s+/g, ' ').trim().toLowerCase();
-
-    console.log(`Checking Received Message:\n Received: "${normalizedReceived}"\n Expected: "${normalizedExpected}"`);
-
-    if (!normalizedReceived.includes(normalizedExpected)) {
-      throw new Error('Message does not match expected content.');
-    }
-
-    const maxAttempts = 10;
-    const waitBetweenScrolls = 1500;
-    const extraScrollAttempts = 3;
-
-    let isFullyVisible = false;
-    let isPartiallyVisibleButHighlighted = false;
-
-
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      console.log(`Scroll & visibility check attempt #${attempt + 1}`);
-
-      // Evaluate visibility & highlight, plus scroll strategies inside page context
-      const result = await this.page.evaluate(async (expectedText) => {
+      await this.page.evaluate(() => {
         const messages = Array.from(document.querySelectorAll('div.bg-chat-receiver div.px-2.pt-1'));
-        const normalize = (text) => text.toLowerCase().replace(/\s+/g, ' ').trim();
-        const targetText = normalize(expectedText);
+        messages.forEach(msg => {
+          msg.style.overflow = 'visible';
+          msg.style.maxHeight = 'none';
+          msg.style.display = 'block';
+        });
+      });
 
-        const target = messages.find(el => normalize(el.innerText || '').includes(targetText));
-        if (!target) return { found: false };
+      await this.page.waitForTimeout(1000);
 
-        // Scroll the target into view smoothly, center block
-        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        await new Promise(r => setTimeout(r, 2000)); // wait smooth scroll
+      rawText = await messageLocator.innerText();
+      const normalizedReceived = rawText.replace(/\s+/g, ' ').trim().toLowerCase();
+      const normalizedExpected = expectedMessage.replace(/\s+/g, ' ').trim().toLowerCase();
 
-        const rect = target.getBoundingClientRect();
+      console.log(`Comparing messages:\n Received: "${normalizedReceived}"\n Expected: "${normalizedExpected}"`);
 
-        const fullyVisible =
-          rect.top >= 0 &&
-          rect.bottom <= window.innerHeight &&
-          rect.left >= 0 &&
-          rect.right <= window.innerWidth;
-
-        const partiallyVisible =
-          rect.bottom > 0 && rect.top < window.innerHeight;
-
-        // Highlight the box regardless
-        target.style.outline = '3px solid lightgreen';
-        target.style.backgroundColor = '#fff8dc';
-        target.style.padding = '5px';
-
-        return {
-          found: true,
-          fullyVisible,
-          partiallyVisible,
-        };
-      }, expectedMessage);
-
-      if (!result.found) {
-        console.log('Message box not found in DOM');
-        break;
+      if (!normalizedReceived.includes(normalizedExpected)) {
+        throw new Error(`Text mismatch. Message received does not match expected.`);
       }
 
-      if (result.fullyVisible) {
-        console.log(`Message is fully visible after attempt #${attempt + 1}`);
-        isFullyVisible = true;
-        break;
-      }
+      // === Scroll into view and check visibility ===
+      const maxScrollTries = 3;
+      let visible = false;
 
-      if (result.partiallyVisible) {
-        console.log(`Message partially visible but highlighted on attempt #${attempt + 1}`);
-        isPartiallyVisibleButHighlighted = true;
+      for (let scrollAttempt = 1; scrollAttempt <= maxScrollTries; scrollAttempt++) {
+        const visibility = await this.page.evaluate((expectedText) => {
+          const messages = Array.from(document.querySelectorAll('div.bg-chat-receiver div.px-2.pt-1'));
+          const normalize = (text) => text.toLowerCase().replace(/\s+/g, ' ').trim();
+          const targetText = normalize(expectedText);
 
-        // Extra scroll down attempts when partially visible
-        for (let extra = 0; extra < extraScrollAttempts; extra++) {
-          console.log(`Extra scroll down attempt #${extra + 1} due to partial visibility`);
+          const target = messages.find(el => normalize(el.innerText || '').includes(targetText));
+          if (!target) return { found: false };
 
-          try {
-            // Scroll chat container down explicitly
-            await this.page.evaluate(() => {
-              const chatContainer = document.querySelector('div.bg-chat-receiver');
-              if (chatContainer) {
-                chatContainer.scrollBy({ top: 100, behavior: 'smooth' });
-              }
-            });
-            await this.page.waitForTimeout(700);
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          target.style.outline = '3px solid #90ee90';
+          target.style.backgroundColor = '#fff8dc';
+          target.style.padding = '6px';
 
-            // Also try window scroll as fallback
-            await this.page.evaluate(() => {
-              window.scrollBy({ top: 100, behavior: 'smooth' });
-            });
-            await this.page.waitForTimeout(1000);
+          const rect = target.getBoundingClientRect();
+          const isVisible = (
+            rect.top >= 0 &&
+            rect.bottom <= window.innerHeight &&
+            rect.left >= 0 &&
+            rect.right <= window.innerWidth
+          );
 
-            // Scroll messageLocator directly into view again
-            await messageLocator.scrollIntoViewIfNeeded({ timeout: 2000 });
-            await this.page.waitForTimeout(1000);
+          return { found: true, isVisible };
+        }, expectedMessage);
 
-            // Check visibility again after scroll attempts
-            const checkVisibility = await this.page.evaluate((expectedText) => {
-            const messages = Array.from(document.querySelectorAll('div.bg-chat-receiver div.px-2.pt-1'));
-            const normalize = (text) => text.toLowerCase().replace(/\s+/g, ' ').trim();
-            const targetText = normalize(expectedText);
+        if (!visibility.found) {
+          console.log(`Scroll attempt ${scrollAttempt}: Message not found in DOM`);
+        } else if (visibility.isVisible) {
+          console.log(`Scroll attempt ${scrollAttempt}: Message is fully visible`);
+          visible = true;
+          break;
+        } else {
+          console.log(`Scroll attempt ${scrollAttempt}: Message not fully visible, retrying scroll...`);
 
-            const target = messages.find(el => normalize(el.innerText || '').includes(targetText));
-            if (!target) return false;
-
-              const rect = target.getBoundingClientRect();
-
-            return (
-                rect.top >= 0 &&
-                rect.bottom <= window.innerHeight &&
-                rect.left >= 0 &&
-                rect.right <= window.innerWidth
-              );
-            }, expectedMessage);
-
-            if (checkVisibility) {
-              console.log(`Message became fully visible after extra scroll attempt #${extra + 1}`);
-              isFullyVisible = true;
-              break;
+          await this.page.evaluate(() => {
+            const chatContainer = document.querySelector('div.bg-chat-receiver');
+            if (chatContainer) {
+              chatContainer.scrollBy({ top: 150, behavior: 'smooth' });
             }
-          } catch (err) {
-            console.warn(`Extra scroll attempt #${extra + 1} failed: ${err.message}`);
-          }
+          });
+
+          await this.page.waitForTimeout(1000);
+
+          await this.page.evaluate(() => {
+            window.scrollBy({ top: 150, behavior: 'smooth' });
+          });
+
+          await this.page.waitForTimeout(1000);
         }
-
-        if (isFullyVisible) break;
       }
 
-      // Try additional scroll down methods after highlight & partial visibility (main loop)
-      try {
-        await this.page.evaluate(() => {
-          const chatContainer = document.querySelector('div.bg-chat-receiver');
-          if (chatContainer) {
-            chatContainer.scrollBy({ top: 100, behavior: 'smooth' });
-          }
-        });
-        await this.page.waitForTimeout(1000);
-
-        await this.page.evaluate(() => {
-          window.scrollBy({ top: 100, behavior: 'smooth' });
-        });
-        await this.page.waitForTimeout(2000);
-
-        await messageLocator.scrollIntoViewIfNeeded({ timeout: 2000 });
-        await this.page.waitForTimeout(1000);
-      } catch (scrollErr) {
-        console.warn('Scroll attempt failed:', scrollErr.message);
+      if (!visible) {
+        console.warn('Message content matched but visibility could not be confirmed after scrolling.');
       }
 
-      await this.page.waitForTimeout(waitBetweenScrolls);
+      console.log(`Message verified and visible after attempt #${attempt}`);
+      return rawText;
+
+    } catch (err) {
+      lastError = err;
+      console.warn(`Attempt ${attempt} failed: ${err.message}`);
+
+      if (attempt < maxRetries) {
+        console.log(`Retrying after short delay...\n`);
+        await this.page.waitForTimeout(3000);
+      } else {
+        const screenshotPath = `screenshots/final_fail_msg_not_found_${Date.now()}.png`;
+        await this.page.screenshot({ path: screenshotPath, fullPage: true });
+        console.error(`Final attempt failed. Screenshot saved: ${screenshotPath}`);
+        throw new Error(`Failed to find expected message after ${maxRetries} attempts: ${lastError.message}`);
+      }
     }
-
-    if (isFullyVisible) {
-      console.log('Test passed: Message is fully visible.');
-    } else if (isPartiallyVisibleButHighlighted) {
-      console.log('Test passed: Message partially visible and highlighted.');
-    } else {
-      throw new Error('Message was not found or visible after retries.');
-    }
-
-    await this.page.waitForTimeout(4000); // Let final highlight show
-
-    await messageLocator.waitFor({ state: 'visible', timeout: 5000 });
-
-    return rawText;
-
-  } catch (error) {
-    const screenshotPath = `screenshots/error_get_last_message_${Date.now()}.png`;
-    if (!this.page.isClosed?.()) {
-      await this.page.screenshot({ path: screenshotPath, fullPage: true });
-      console.error('Error in getLastReceivedMsgFromCreator:', error.message);
-      console.log(`Screenshot saved: ${screenshotPath}`);
-    } else {
-      console.warn('Page already closed, screenshot skipped.');
-    }
-    throw error;
   }
-  
 }
 
 async CreatorChat_MassMedia(fanEmail) {
@@ -805,7 +718,7 @@ async receivedVaultMedia(fanEmail) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         console.log(`Attempt ${attempt}: Clicking Pay button...`);
-        await payBtn.click({ timeout: 5000 });
+        await payBtn.click({ timeout: 2000 });
         await this.page.waitForTimeout(1500);
 
         const popupCloseBtn = this.page.locator('button:has-text("Close"), button.swal2-cancel, button.swal2-close');
@@ -830,13 +743,13 @@ async receivedVaultMedia(fanEmail) {
       // Step 1: Wait for confirmation message
       const confirmationText = this.page.locator('text=Your message has been unlocked.');
       console.log("Waiting for unlock confirmation...");
-      await confirmationText.waitFor({ state: 'visible', timeout: 20000 });
+      await confirmationText.waitFor({ state: 'visible', timeout: 3000 });
       console.log("Vault Media message unlocked successfully.");
 
       // Step 2: Click the 'Got it!' button
       const gotItBtn = this.page.locator('button.swal2-confirm.swal2-styled:has-text("Got it!")');
       try {
-        await gotItBtn.waitFor({ state: 'visible', timeout: 10000 });
+        await gotItBtn.waitFor({ state: 'visible', timeout: 1000 });
         if (await gotItBtn.isEnabled()) {
           await gotItBtn.click();
           console.log('Clicked "Got it!" button.');
@@ -847,7 +760,7 @@ async receivedVaultMedia(fanEmail) {
 
       // Step 3: Wait for the confirmation modal to disappear
       try {
-        await confirmationText.waitFor({ state: 'detached', timeout: 7000 });
+        await confirmationText.waitFor({ state: 'detached', timeout: 5000 });
         console.log('Confirmation popup closed.');
       } catch (waitError) {
         console.warn("Confirmation popup didn't close in time.");
@@ -856,7 +769,7 @@ async receivedVaultMedia(fanEmail) {
       // Step 4: Wait for actual vault media preview (optional)
       try {
         const vaultPreview = this.page.locator('selector-for-vault-preview'); // replace with real selector
-        await expect(vaultPreview).toBeVisible({ timeout: 7000 });
+        await expect(vaultPreview).toBeVisible({ timeout: 5000 });
         console.log("Vault preview confirmed.");
       } catch (previewError) {
         console.warn("Vault media preview not found:", previewError.message);
@@ -864,14 +777,14 @@ async receivedVaultMedia(fanEmail) {
 
       console.log(`Vault media fully verified and previewed for fan: ${fanEmail}`);
 
-      // Step 5: Close page
-      try {
-        await this.page.close();
-        console.log("Page closed after successful Vault Media interaction.");
-      } catch (closeError) {
-        console.warn("Could not close page:", closeError.message);
-      }
-
+// Step 5: Close page
+  try {
+    await this.page.waitForTimeout(1500); 
+    await this.page.close();
+    console.log("Page closed after successful Vault Media interaction.");
+  } catch (closeError) {
+    console.warn("Could not close page:", closeError.message);
+  }
       return true;
 
     } catch (error) {
