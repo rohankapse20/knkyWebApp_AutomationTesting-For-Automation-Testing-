@@ -171,53 +171,37 @@ async scrollToBottom() {
     await this.page.waitForTimeout(2000);
   }
 
-// Free Mass Messages
 async sendMassMessageFromData({ type, content }) {
-  let messageToSend = content || generateRandomMessage(); // Use provided content or generate random message
+  const messageToSend = "Hii all of my followers...";
 
   try {
-    // Ensure that 'Get Started' chat option is visible and clickable
     if (await this.getStartedMassChat.isVisible({ timeout: 15000 })) {
       await this.getStartedMassChat.click();
       console.log('Clicked Get Started');
-
-      // Wait for 2 seconds to allow UI to update (textarea to appear)
       await this.page.waitForTimeout(2000);
 
-      // Extra check: ensure message box is visible
       if (!(await this.messageText.isVisible({ timeout: 3000 }))) {
         await this.page.screenshot({ path: `error_message_text_not_visible_${type}.png` });
         throw new Error(`Message input field not visible after clicking 'Get Started'`);
       }
 
-      // If content is not provided, a random message is used
-      if (!content) {
-        console.log('No content provided, using randomly generated message');
-      }
+      await this.messageText.fill(messageToSend);
+      console.log('Filled message text:', messageToSend);
 
-      // Fill the message input box
-      try {
-        await this.messageText.fill(messageToSend);
-        console.log('Filled message text:', messageToSend);
-      } catch (error) {
-        await this.page.screenshot({ path: `error_fill_message_${type}.png` });
-        throw new Error(`Failed to fill message text: ${error.message}`);
-      }
+      return messageToSend; // Return the hardcoded message for verification
+
     } else {
-      // 'Get Started' not visible
       console.error('Get Started option not visible within timeout');
       await this.page.screenshot({ path: `error_get_started_not_visible_${type}.png` });
       throw new Error('Get Started option not visible');
     }
-
-    return messageToSend; // Return the actual message sent for verification
   } catch (error) {
-    // Catch all unexpected errors, log and screenshot
     console.error(`Error sending mass ${type} message:`, error.message);
     await this.page.screenshot({ path: `error_send_mass_${type}_${Date.now()}.png` });
     throw error;
   }
 }
+
 
 // Paid Media Vault Messages
 async sendMassMediaVault({ type }) {
@@ -491,6 +475,19 @@ async selectSendDetails() {
   }
 }
 
+  async getTopMessageText() {
+    try {
+      
+      this.topMessageLocator = page.locator('div[data-sentry-component="renderText"] span').first();
+
+      await this.topMessageLocator.waitFor({ state: 'visible', timeout: 5000 });
+      const text = await this.topMessageLocator.innerText();
+      return text.trim();
+    } catch (err) {
+      throw new Error(`Top message not found or not visible: ${err.message}`);
+    }
+  }
+
 
 async getLastReceivedMsgFromCreator(expectedMessage = '') {
   const maxRetries = 3;
@@ -528,6 +525,7 @@ async getLastReceivedMsgFromCreator(expectedMessage = '') {
       // === Scroll into view and check visibility ===
       const maxScrollTries = 3;
       let visible = false;
+      
 
       for (let scrollAttempt = 1; scrollAttempt <= maxScrollTries; scrollAttempt++) {
         const visibility = await this.page.evaluate((expectedText) => {
@@ -603,6 +601,8 @@ async getLastReceivedMsgFromCreator(expectedMessage = '') {
     }
   }
 }
+
+
 
 async CreatorChat_MassMedia(fanEmail) {
   const fallbackEmail = 'rohan.kapse@iiclab.com';

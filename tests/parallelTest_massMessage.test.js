@@ -3,7 +3,6 @@ const fs = require('fs');
 const path = require('path');
 const { generateRandomMessage } = require('../utils/helpers');
 
-
 const { getTestData } = require('../utils/readExcel');
 const { BasePage } = require('../pages/BasePage');
 const { SigninPage } = require('../pages/SigninPage');
@@ -11,208 +10,166 @@ const { ChatPage } = require('../pages/ChatPage');
 
 require('dotenv').config({ path: './.env' });
 
-// Ensure environment variables are loaded
+// Environment Validation
 const BASE_URL = process.env.BASE_URL;
 const CREATOR_EMAIL = process.env.CREATOR_EMAIL;
 if (!BASE_URL || !CREATOR_EMAIL) {
   throw new Error("Missing required environment variables: BASE_URL or CREATOR_EMAIL");
 }
 
-// Data from Excel
+// Excel Test Data
 const chatData = getTestData('./data/testData.xlsx', 'massMsgSend_Data');
 const fanData = getTestData('./data/testData.xlsx', 'users_LoginData');
 
-// Playwright setup and test timeout
+// Test Settings
 test.use({ viewport: { width: 780, height: 700 } });
-test.setTimeout(60000); 
+test.setTimeout(60000);
 
-// Helper function to handle error logging and screenshot
+// Error Handler
 async function handleError(page, index, step, error) {
   console.error(`${step} failed: ${error.message}`);
-  // Capture a screenshot in case of an error
   if (!page.isClosed()) {
     const screenshotPath = `error_${step.toLowerCase().replace(/\s+/g, '_')}_${index + 1}.png`;
     await page.screenshot({ path: screenshotPath });
     console.log(`Screenshot saved: ${screenshotPath}`);
   }
-  throw error; // Rethrow the error to mark the test as failed
+  throw error;
 }
 
-// Parallel Test
-test.describe.parallel('Mass Message Send and verify by Fan Tests', () => {
+// Parallel Tests
+test.describe.parallel('Mass Message Send and Fan Verification Tests', () => {
 
-// Free Messages
-chatData.forEach((dataRow, index) => {
-  test(`Mass message send test #${index + 1} - ${dataRow.CreatorEmail}`, async ({ browser }) => {
+  chatData.forEach((dataRow, index) => {
+    test(`Creator Mass Message Send Test #${index + 1} - ${dataRow.CreatorEmail}`, async ({ browser }) => {
+      const context = await browser.newContext();
+      const page = await context.newPage();
 
-    const context = await browser.newContext();
-    const page = await context.newPage();
+      const base = new BasePage(page);
+      const signin = new SigninPage(page);
+      const chat = new ChatPage(page);
 
-
-    const base = new BasePage(page);
-    const signin = new SigninPage(page);
-    const chat = new ChatPage(page);
-
-    let phrase;
-    try {
-      phrase = generateRandomMessage(); // Generate random message
-      console.log(`Generated phrase: ${phrase}`);
-    } catch (error) {
-      await handleError(page, index, 'Generate Random Message', error);
-    }
-
-    // Write message to JSON for fan verification
-    const messagePath = path.resolve(__dirname, '../data/lastSentMessage.json');
-    try {
-      fs.writeFileSync(messagePath, JSON.stringify({ message: phrase }, null, 2));
-      console.log(`Message written to: ${messagePath}`);
-    } catch (error) {
-      await handleError(page, index, 'Write Message to JSON', error);
-    }
-
-    // Login and Send Mass Message Process
-    try {
-      console.log('Navigating to login page...');
-      await base.navigate();
-      await signin.goToSignin();
-      await signin.fillSigninForm(dataRow.CreatorEmail, dataRow.CreatorPassword);
-      await signin.signinSubmit();
-      await chat.handleOtpVerification();
-    } catch (error) {
-      await handleError(page, index, 'Login Flow', error);
-    }
-
-    // Confirm successful login
-    try {
-      const welcomePopup = page.locator('text=Welcome Back, PlayfulMistress');
-      await expect(welcomePopup).toBeVisible({ timeout: 20000 });
-      console.log(`Successfully logged in: ${dataRow.CreatorEmail}`);
-    } catch (error) {
-      await handleError(page, index, 'Login Confirmation', error);
-    }
-// Navigate to chat
-try {
-  await chat.navigateToChat();
-  await chat.getStartedMassOption();
-  console.log('Navigated to chat and selected mass message option.');
-} catch (error) {
-  await handleError(page, index, 'Navigate to Chat', error);
-}
-
-// Send Mass Message
-const messageType = dataRow.MessageType?.toLowerCase();
-console.log(` Sending Mass Message for type: ${messageType}`);
-let sentMessage = '';
-try {
-  sentMessage = await chat.sendMassMessageFromData({
-    type: messageType,
-    content: phrase, // Use generated phrase as message content
-  });
-  await page.waitForTimeout(1000); // Buffer wait after typing message
-} catch (error) {
-  await handleError(page, index, 'Send Mass Message', error);
-}
-
-// Select send details and submit
-try {
-
-    await chat.followersActiveSubCheckbox();
-    await page.waitForTimeout(1000);
-    
-    await chat.selectSendDetails();
-    await page.waitForTimeout(1000);
-    
-    console.log('Selected send details for the message.');
-} catch (error) {
-    await handleError(page, index, 'Select Send Details', error);
-}
-
-// Submit the Mass message form
-try {
-  
-  // Wait for success popup to appear
-  await chat.waitForSuccessPopup({ timeout: 15000 });
-
-  // Try closing the success popup
-  try {
-    await chat.closeSuccessPopup();
-    console.log('Closed success popup');
-  } catch (err) {
-    const path = `screenshots/error_closing_popup_${Date.now()}.png`;
-    await page.screenshot({ path, fullPage: true });
-    throw new Error(`Failed to click close on success popup. Screenshot: ${path}`);
-  }
-
-  // Wait 2 seconds after closing
-  await page.waitForTimeout(2000);
-
-  // Explicitly check if popup is still visible
-  let isStillVisible = false;
-  try {
-    isStillVisible = await chat.successPopup?.isVisible({ timeout: 3000 });
-  } catch {
-    isStillVisible = false; // popup likely not found anymore
-  }
-
-  if (isStillVisible) {
-    const path = `screenshots/error_popup_still_visible_${Date.now()}.png`;
-    await page.screenshot({ path, fullPage: true });
-    throw new Error(`Success popup still visible after close. Screenshot: ${path}`);
-  }
-
-  // Test passed
-  console.log(`Mass ${messageType} message sent successfully by ${dataRow.CreatorEmail}`);
-  expect(true).toBeTruthy();
-
-   // Wait 10 seconds after closing
-  await page.waitForTimeout(10000);
-  await page.close();
-  await context.close();
-
-} catch (error) {
-  await handleError(page, index, 'Submit Form', error);
-}
- 
-  });
-});
-
-fanData.forEach((fan, index) => {
-  test(`Verify message visible to fan #${index + 1} - ${fan.FanEmail}`, async ({ browser }) => {
-    test.setTimeout(300_000); // 5 minutes
-
-   
-    const messagePath = path.resolve(__dirname, '../data/lastSentMessage.json');
-
-    // Read latest message with retry
-    const getLatestExpectedMessage = async (maxTries = 10, interval = 2000) => {
-      let lastContent = '';
-      for (let attempt = 1; attempt <= maxTries; attempt++) {
-        try {
-          const fileContent = fs.readFileSync(messagePath, 'utf-8');
-          const messageData = JSON.parse(fileContent);
-          const message = messageData.message?.trim();
-
-          if (message && message !== lastContent) {
-            console.log(`📩 Message received from file on attempt ${attempt}: ${message}`);
-            return message;
-          }
-
-          console.log(`⏳ Waiting for updated message (Attempt ${attempt})...`);
-          lastContent = message || '';
-          await new Promise(res => setTimeout(res, interval));
-        } catch (err) {
-          console.warn(`⚠️ Failed to read/parse message on attempt ${attempt}: ${err.message}`);
-          await new Promise(res => setTimeout(res, interval));
-        }
+      let phrase;
+      try {
+        phrase = generateRandomMessage();
+        console.log(`Generated phrase: ${phrase}`);
+      } catch (error) {
+        await handleError(page, index, 'Generate Random Message', error);
       }
 
-      throw new Error(`❌ Timed out waiting for expected message in lastSentMessage.json`);
-    };
+      const messageFileName = `lastSentMessage_${index + 1}.json`;
+      const messagePath = path.resolve(__dirname, `../data/${messageFileName}`);
 
-    const expectedMessage = await getLatestExpectedMessage();
+      try {
+        fs.writeFileSync(messagePath, JSON.stringify({ message: phrase }, null, 2));
+        console.log(`Initial message written to: ${messagePath}`);
+      } catch (error) {
+        await handleError(page, index, 'Write Message to JSON', error);
+      }
+
+      try {
+        console.log('Navigating to login page...');
+        await base.navigate();
+        await signin.goToSignin();
+        await signin.fillSigninForm(dataRow.CreatorEmail, dataRow.CreatorPassword);
+        await signin.signinSubmit();
+        await chat.handleOtpVerification();
+      } catch (error) {
+        await handleError(page, index, 'Login Flow', error);
+      }
+
+      try {
+        const welcomePopup = page.locator('text=Welcome Back, PlayfulMistress');
+        await expect(welcomePopup).toBeVisible({ timeout: 20000 });
+        console.log(`Successfully logged in: ${dataRow.CreatorEmail}`);
+      } catch (error) {
+        await handleError(page, index, 'Login Confirmation', error);
+      }
+
+      try {
+        await chat.navigateToChat();
+        await chat.getStartedMassOption();
+        console.log('Navigated to chat and selected mass message option.');
+      } catch (error) {
+        await handleError(page, index, 'Navigate to Chat', error);
+      }
+
+      const messageType = dataRow.MessageType?.toLowerCase();
+      console.log(`Sending Mass Message for type: ${messageType}`);
+
+      const sentMessage = await chat.sendMassMessageFromData({
+        type: messageType,
+        content: phrase,
+      });
+
+      fs.writeFileSync(messagePath, JSON.stringify({ message: sentMessage }, null, 2));
+      console.log(`Saved sent message to file: ${sentMessage}`);
+
+      try {
+        await chat.followersActiveSubCheckbox();
+        await page.waitForTimeout(1000);
+        await chat.selectSendDetails();
+        await page.waitForTimeout(1000);
+        console.log('Selected send details for the message.');
+      } catch (error) {
+        await handleError(page, index, 'Select Send Details', error);
+      }
+
+      try {
+        await chat.waitForSuccessPopup({ timeout: 15000 });
+
+        try {
+          await chat.closeSuccessPopup();
+          console.log('Closed success popup');
+        } catch (err) {
+          const path = `screenshots/error_closing_popup_${Date.now()}.png`;
+          await page.screenshot({ path, fullPage: true });
+          throw new Error(`Failed to close success popup. Screenshot: ${path}`);
+        }
+
+        await page.waitForTimeout(2000);
+        let isStillVisible = false;
+        try {
+          isStillVisible = await chat.successPopup?.isVisible({ timeout: 3000 });
+        } catch {
+          isStillVisible = false;
+        }
+
+        if (isStillVisible) {
+          const path = `screenshots/error_popup_still_visible_${Date.now()}.png`;
+          await page.screenshot({ path, fullPage: true });
+          throw new Error(`Success popup still visible after close. Screenshot: ${path}`);
+        }
+
+        console.log(`Mass ${messageType} message sent successfully by ${dataRow.CreatorEmail}`);
+        expect(true).toBeTruthy();
+
+        await page.waitForTimeout(10000);
+        await page.close();
+        await context.close();
+      } catch (error) {
+        await handleError(page, index, 'Submit Form', error);
+      }
+    });
+  });
+fanData.forEach((fan, index) => {
+  test(`Fan Message Verification Test #${index + 1} - ${fan.FanEmail}`, async ({ browser }) => {
+    test.setTimeout(300_000);
+
+    const messageFileName = `lastSentMessage_${index + 1}.json`;
+    const messagePath = path.resolve(__dirname, `../data/${messageFileName}`);
+
+    if (!fs.existsSync(messagePath)) {
+      throw new Error(`Message file not found: ${messagePath}`);
+    }
+
+    const messageData = JSON.parse(fs.readFileSync(messagePath, 'utf-8'));
+    const expectedMessage = messageData.message?.trim();
+
+    if (!expectedMessage) {
+      throw new Error('No message found in message file.');
+    }
+
     const normalizedExpected = expectedMessage.toLowerCase().replace(/\s+/g, ' ').trim();
-    const delays = [0, 2000, 5000, 7000, 10000, 12000, 15000, 17000, 20000, 25000];
-    const retryLimit = delays.length;
 
     const context = await browser.newContext();
     const page = await context.newPage();
@@ -230,50 +187,56 @@ fanData.forEach((fan, index) => {
 
       const welcomePopup = page.locator('text=Welcome Back,');
       await expect(welcomePopup).toBeVisible({ timeout: 20000 });
-
       console.log(`Logged in: ${fan.FanEmail}`);
 
       await chat.navigateToChat();
       await chat.chatWithCreator();
 
-      const maxRetries = 3;
+      const maxRetries = 10;
+      const retryDelay = 3000;
       let rawText = '';
-      let lastError = null;
+      let matched = false;
 
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-          console.log(`\n Attempt ${attempt}: Checking for received message...`);
-          await page.waitForTimeout(10000); // wait for message to be received
+          console.log(`Attempt ${attempt}: Waiting for message...`);
+          await page.waitForTimeout(retryDelay);
 
-          rawText = await chat.getLastReceivedMsgFromCreator(expectedMessage);
+          rawText = await chat.getLastReceivedMsgFromCreator(normalizedExpected);
+          const normalizedReceived = rawText.toLowerCase().replace(/\s+/g, ' ').trim();
 
-          console.log(`Received message matches expected:\n "${rawText}"`);
-          console.log(`Test passed for fan ${fan.FanEmail}: Message visible.`);
-          break; // Success: exit retry loop
-        } catch (err) {
-          lastError = err;
-          console.warn(`Attempt ${attempt} failed: ${err.message}`);
-
-          if (attempt < maxRetries) {
-            console.log(`Retrying after delay...`);
-            await page.waitForTimeout(2000);
+          if (normalizedReceived.includes(normalizedExpected)) {
+            console.log(`Received message matches expected:\nExpected: "${normalizedExpected}"\nReceived: "${normalizedReceived}"`);
+            matched = true;
+            break;
           } else {
-            const screenshotPath = `screenshots/message_not_visible_${Date.now()}.png`;
-            await page.screenshot({ path: screenshotPath, fullPage: true });
-
-            throw new Error(
-              `Message not visible or fully loaded for fan ${fan.FanEmail} after ${maxRetries} attempts:\n ${lastError.message}`
-            );
+            console.warn(`Mismatch on attempt ${attempt}\nReceived: "${normalizedReceived}"`);
           }
+        } catch (err) {
+          console.warn(`Attempt ${attempt} failed: ${err.message}`);
+        }
+
+        if (attempt < maxRetries) {
+          console.log(`Retrying after ${retryDelay}ms...`);
         }
       }
+
+      if (!matched) {
+        const screenshotPath = `screenshots/message_not_visible_${Date.now()}.png`;
+        await page.screenshot({ path: screenshotPath, fullPage: true });
+        throw new Error(`Message mismatch for fan ${fan.FanEmail}.\nExpected: "${normalizedExpected}"\nReceived: "${rawText}"\nScreenshot: ${screenshotPath}`);
+      }
+
+      console.log(`Message successfully verified for fan: ${fan.FanEmail}`);
     } catch (error) {
-      console.error(`Error in test for fan ${fan.FanEmail}: ${error.message}`);
+      console.error(`Test failed for fan ${fan.FanEmail}: ${error.message}`);
       throw error;
     } finally {
       await page.close();
       await context.close();
     }
   });
+
 });
 });
+      

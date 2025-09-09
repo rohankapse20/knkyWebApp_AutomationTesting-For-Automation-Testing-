@@ -15,21 +15,21 @@ async function getLatestExpectedMessage(maxRetries = 10, intervalMs = 2000) {
       currentMessage = (data.message || '').trim();
 
       if (currentMessage && currentMessage !== lastSeenMessage) {
-        console.log(`📩 Message received from file on attempt ${attempt}: ${currentMessage}`);
+        console.log(`Message received from file on attempt ${attempt}: ${currentMessage}`);
         return currentMessage;
       }
 
-      console.log(`⏳ Waiting for updated message (Attempt ${attempt})...`);
+      console.log(`Waiting for updated message (Attempt ${attempt})...`);
       lastSeenMessage = currentMessage;
 
       await new Promise(resolve => setTimeout(resolve, intervalMs));
     } catch (err) {
-      console.warn(`⚠️ Failed to read/parse message on attempt ${attempt}: ${err.message}`);
+      console.warn(`Failed to read/parse message on attempt ${attempt}: ${err.message}`);
       await new Promise(resolve => setTimeout(resolve, intervalMs));
     }
   }
 
-  throw new Error(`❌ Timed out waiting for updated message in lastSentMessage.json`);
+  throw new Error(`Timed out waiting for updated message in lastSentMessage.json`);
 }
 
 module.exports = {
