@@ -49,8 +49,8 @@ jobs:
           CI: true
         run: |
           npm run clean
-          npx playwright test signup.spec.js --headed
-          npx playwright test signin.spec.js --headed
+          npx playwright test signup.spec.js
+          npx playwright test signin.spec.js
 
       - name: 📊 Generate Allure Report
         run: |

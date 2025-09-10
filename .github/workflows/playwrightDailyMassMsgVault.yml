@@ -49,8 +49,8 @@ jobs:
           CI: true
         run: |
           npm run clean
-          npx playwright test parallelTest_massVaultMedia.test.js --workers=2 --headed
-          npx playwright test parallelTest_massMessage.test.js --workers=2 --headed
+          npx playwright test parallelTest_massVaultMedia.test.js --workers=2 
+          npx playwright test parallelTest_massMessage.test.js --workers=2
 
       - name: 📊 Generate Allure Report
         run: |
