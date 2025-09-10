@@ -1,7 +1,6 @@
 const { test, expect } = require('@playwright/test');
-const fs = require('fs');
-const path = require('path');
-const { generateRandomMessage } = require('../utils/helpers');
+// const fs = require('fs');
+// const path = require('path');
 const { getTestData } = require('../utils/readExcel');
 const { BasePage } = require('../pages/BasePage');
 const { SigninPage } = require('../pages/SigninPage');
@@ -21,7 +20,7 @@ const chatData = getTestData('./data/testData.xlsx', 'massMsgSend_Data');
 const fanData = getTestData('./data/testData.xlsx', 'users_LoginData');
 
 // Playwright setup
-test.use({ viewport: { width: 1400, height: 700 } });
+test.use({ viewport: { width: 780, height: 700 } });
 test.setTimeout(12000); // Increase timeout for slow tests
 
 // Helper function to handle error logging and screenshot
@@ -36,8 +35,10 @@ async function handleError(page, index, step, error) {
   throw error; // Rethrow the error to mark the test as failed
 }
 
-// Test Loop for Mass Vault Media Sending for Free to Fans
-// Free Vault Media Messages
+// Parallel Test
+test.describe.parallel('Mass Vault Media Tests', () => {
+
+// Test for Mass Vault Media Sending for Free to Fans
 chatData.forEach((dataRow, index) => {
   test(`Mass Vault Media Send test #${index + 1} - ${dataRow.CreatorEmail}`, async ({ page }) => {
     test.setTimeout(240000);  //  Set timeout to 4 minutes
@@ -45,23 +46,6 @@ chatData.forEach((dataRow, index) => {
     const base = new BasePage(page);
     const signin = new SigninPage(page);
     const chat = new ChatPage(page);
-
-    let phrase;
-    try {
-      phrase = generateRandomMessage(); // Generate random message
-      console.log(`Generated phrase: ${phrase}`);
-    } catch (error) {
-      await handleError(page, index, 'Generate Random Message', error);
-    }
-
-    // Write message to JSON for fan verification
-    const messagePath = path.resolve(__dirname, '../data/lastSentMessage.json');
-    try {
-      fs.writeFileSync(messagePath, JSON.stringify({ message: phrase }, null, 2));
-      console.log(`Message written to: ${messagePath}`);
-    } catch (error) {
-      await handleError(page, index, 'Write Message to JSON', error);
-    }
 
     // Login and Send Mass Message Process
     try {
@@ -100,9 +84,10 @@ let sentMessage;
 
 try {
   // Step 1 - Sending the Mass Media Vault message
+  // Removed content: phrase parameter, so just send type without content
   sentMessage = await chat.sendMassMediaVault({
     type: messageType,
-    content: phrase,
+    // content property removed entirely
   });
 
   await page.waitForTimeout(1500); // Small buffer wait
@@ -127,7 +112,7 @@ try {
 try {
   console.log('Closing success popup...');
   await chat.closeSuccessPopup();
-  await page.waitForTimeout(2000); // Wait after closing
+  await page.waitForTimeout(10000); // Wait after 10 Seconds closing
   console.log('Success popup closed.');
 } catch (error) {
   const path = `screenshots/error_closing_popup_${Date.now()}.png`;
@@ -161,9 +146,7 @@ try {
 // Fan verify the vault media message 
 fanData.forEach((fan, index) => {
   test(`Verify Vault Media message visible to Fans after paying the money #${index + 1} - ${fan.FanEmail}`, async ({ browser }) => {
-    
-    
-// Playwright setup
+
     test.setTimeout(240000);  // Set timeout to 4 minutes
 
     const context = await browser.newContext();
@@ -192,29 +175,45 @@ fanData.forEach((fan, index) => {
       await chat.chatWithCreator();
 
       // Step 3: Unlock Vault Media by paying
-      const paymentSuccess = await chat.CreatorChat_MassMedia();
+      const paymentSuccess = await chat.CreatorChat_MassMedia(fan.FanEmail); // ❗ corrected from receivedVaultMedia()
       if (!paymentSuccess) {
         throw new Error(`Payment failed for fan: ${fan.FanEmail}`);
       }
 
-      // Step 4: Verify Vault Media is received and viewable
-      let verificationSuccess = false;
-      try {
-        verificationSuccess = await chat.receivedVaultMedia(fan.FanEmail);
-      } catch (innerErr) {
-        console.warn(`Vault media verification encountered an issue for fan: ${fan.FanEmail}`);
-        console.warn(innerErr.message);
+    // Step 4: Verify Vault Media is received and viewable
+    let verificationSuccess = false;
+    try {
+      verificationSuccess = await chat.receivedVaultMedia(fan.FanEmail);
+    } catch (innerErr) {
+      console.warn(`Vault media verification encountered an issue for fan: ${fan.FanEmail}`);
+      console.warn(innerErr.message);
+    }
+
+    if (!verificationSuccess) {
+      throw new Error(`Vault media not verified for fan: ${fan.FanEmail}`);
+    }
+
+    // Step 5: Confirm success message and close modal (optional UX steps)
+    try {
+      const confirmationText = page.locator('text=Your message has been unlocked.');
+      await confirmationText.waitFor({ state: 'visible', timeout: 5000 });
+      console.log('Success message confirmed.');
+
+      const finalCloseBtn = page.locator('button:has-text("Close"), button.swal2-close');
+      if (await finalCloseBtn.isVisible()) {
+        await finalCloseBtn.click();
+        console.log('Final modal closed.');
+      } else {
+        console.log('No final close button detected.');
       }
 
-      // If modal opened but image not visible, still consider as pass
-      if (!verificationSuccess) {
-        console.warn(`Vault media image not verified for fan: ${fan.FanEmail}, but modal may have opened.`);
-        verificationSuccess = true; // Allow test to pass despite image not showing
-      }
+    } catch (extraStepErr) {
+      console.warn('Post-verification modal handling failed:', extraStepErr.message);
+    }
 
-      // Final Assertion
-      expect(verificationSuccess).toBe(true);
-      console.log(`Test passed for fan: ${fan.FanEmail}`);
+    // Final Assertion
+    expect(verificationSuccess).toBe(true);
+    console.log(`Test passed for fan: ${fan.FanEmail}`);
 
     } catch (error) {
       const safeEmail = fan.FanEmail.replace(/[@.]/g, "_");
@@ -231,7 +230,7 @@ fanData.forEach((fan, index) => {
         console.warn(`Cannot take screenshot — page is already closed.`);
       }
 
-      throw error; // rethrow to fail the test
+      throw error; // Rethrow to fail the test
 
     } finally {
       if (context && context.pages().length > 0) {
@@ -243,6 +242,7 @@ fanData.forEach((fan, index) => {
         }
       }
     }
-    
+
   });
+});
 });

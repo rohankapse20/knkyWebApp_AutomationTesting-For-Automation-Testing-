@@ -15,6 +15,21 @@ function generatePhrase() {
 }
 
 // Generate dynamic random message
+
+function generateDynamicMessage() {
+  const phrases = [
+    "Hello fans!",
+    "New update from me.",
+    "Stay tuned!",
+    "Good morning, folks!",
+    "Big surprise coming!"
+  ];
+  const random = phrases[Math.floor(Math.random() * phrases.length)];
+  return `${random} [${Date.now()}]`; // Ensures uniqueness
+}
+
+
+
 function generateRandomMessage() {
   // Subjects
   const creators = ["The Creator", "The Influencer", "The Streamer", "The Developer", "The Artist", "The Content Creator"];
@@ -223,7 +238,6 @@ export async function clickEnabledButtonWithRetry(page, buttonText, maxRetries =
 }
 
 
-
 // Scroll through chat list to find and click chat by creator name
 async function clickChatByCreatorName(page, creatorName) {
   const chatItem = page.locator(
@@ -361,7 +375,6 @@ async function scrollToElement(locator) {
   }
 }
 
-
 // Assert that an element's attribute matches expected value
 async function assertAttribute(locator, attribute, expectedValue) {
   const value = await locator.getAttribute(attribute);
@@ -370,7 +383,6 @@ async function assertAttribute(locator, attribute, expectedValue) {
   }
   console.log(`Attribute ${attribute} matches expected value: ${expectedValue}`);
 }
-
 
 // Clear an input field and type new text
 async function clearAndType(locator, text) {
@@ -394,7 +406,6 @@ async function retry(fn, retries = 3, delay = 10000) {
   }
   throw lastError;
 }
-
 
 
 // Export all helpers
@@ -424,4 +435,5 @@ module.exports = {
   scrollDownPage,
   scrollPageUp,
   scrollElementUp,
+  generateDynamicMessage
 };

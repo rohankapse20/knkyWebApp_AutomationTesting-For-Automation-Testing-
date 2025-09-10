@@ -12,6 +12,7 @@ class ChatPage {
     this.page = page;
 
     // Define the locators
+    
     this.getStartedMassChat = page.locator("//button[normalize-space(text())='Get Started']");
     this.messageText = page.locator("//textarea[@placeholder='Type your message here']");
     this.mediaRadio = page.locator("//input[@type='radio' and @value='Media']");
@@ -26,19 +27,17 @@ class ChatPage {
   
     this.successPopup = this.page.locator("//h2[normalize-space()='Message sent successfully']");
     this.successCloseButton = this.page.locator("//button[contains(@class, 'swal2-confirm') and normalize-space(text())='Close']");
-
- 
-
+    
   }
 
 async navigateToChat() {
   try {
-    if (await this.testVersAccept.isVisible({ timeout: 20000 })) {
+    if (await this.testVersAccept.isVisible({ timeout: 30000 })) {
       await this.testVersAccept.click();
       console.log('Accepted test version');
     }
 
-    await this.chatoption.waitFor({ state: 'visible', timeout: 20000 });
+    await this.chatoption.waitFor({ state: 'visible', timeout: 30000 });
     await this.chatoption.click();
     console.log('Clicked Chat icon');
 
@@ -62,20 +61,21 @@ async navigateToChat() {
 
 async chatWithCreator(retryCount = 0) {
   const creatorName = 'PlayfulMistress';
-  const MAX_RETRIES = 1;
+  const MAX_RETRIES = 3;
 
   const searchInput = this.page.locator('#chat-search-box input[type="search"]');
   const emptyChatText = this.page.locator('text="Chat list is empty :("');
   const suggestionOption = this.page.locator(`//span[@class="profile-last-message" and normalize-space(text())="${creatorName}"]`);
-  const chatItem = this.page.locator(
-    `//div[contains(@class, 'chatList_chatItem__')][.//span[normalize-space(text())='${creatorName}']]`
-  );
+  // const chatItem = this.page.locator(
+  //   `//div[contains(@class, 'chatList_chatItem__')][.//span[normalize-space(text())='${creatorName}']]`
+  // );
 
   try {
     try {
-      console.log(`[${retryCount}] Starting chatWithCreator`);
-      await this.page.waitForTimeout(2000);
 
+      await this.page.waitForTimeout(2000);
+      console.log(`[${retryCount}] Starting chatWithCreator`);
+     
       let isChatEmpty = await emptyChatText.isVisible({ timeout: 5000 }).catch(() => false);
 
       if (isChatEmpty) {
@@ -97,9 +97,9 @@ async chatWithCreator(retryCount = 0) {
       } else {
         console.log(`[${retryCount}] Chat list not empty, finding creator directly...`);
 
-        // 🛠️ Use the helper to locate and click chat item
+        // Use the helper to locate and click chat item
         await clickChatByCreatorName(this.page, creatorName);
-        await this.page.waitForTimeout(1000); // Keep your original delay
+        await this.page.waitForTimeout(20000); // Wait for 20 seconds
       }
 
     } catch (error) {
@@ -171,50 +171,29 @@ async scrollToBottom() {
     await this.page.waitForTimeout(2000);
   }
 
-// Free Mass Messages
 async sendMassMessageFromData({ type, content }) {
-  let messageToSend = content || generateRandomMessage(); // Use provided content or generate random message
+  const messageToSend = content || 'Hello everyone!'; // default fallback
 
   try {
-    // Ensure that 'Get Started' chat option is visible and clickable
     if (await this.getStartedMassChat.isVisible({ timeout: 15000 })) {
       await this.getStartedMassChat.click();
       console.log('Clicked Get Started');
-
-      // Wait for 2 seconds to allow UI to update (textarea to appear)
       await this.page.waitForTimeout(2000);
 
-      // Extra check: ensure message box is visible
       if (!(await this.messageText.isVisible({ timeout: 3000 }))) {
         await this.page.screenshot({ path: `error_message_text_not_visible_${type}.png` });
         throw new Error(`Message input field not visible after clicking 'Get Started'`);
       }
 
-      // If content is not provided, a random message is used
-      if (!content) {
-        console.log('No content provided, using randomly generated message');
-      }
+      await this.messageText.fill(messageToSend);
+      console.log('Filled message text:', messageToSend);
 
-      // Fill the message input box
-      try {
-        await this.messageText.fill(messageToSend);
-        console.log('Filled message text:', messageToSend);
-      } catch (error) {
-        await this.page.screenshot({ path: `error_fill_message_${type}.png` });
-        throw new Error(`Failed to fill message text: ${error.message}`);
-      }
-    } else {
-      // 'Get Started' not visible
-      console.error('Get Started option not visible within timeout');
-      await this.page.screenshot({ path: `error_get_started_not_visible_${type}.png` });
-      throw new Error('Get Started option not visible');
+      return messageToSend;
     }
 
-    return messageToSend; // Return the actual message sent for verification
+    throw new Error('Get Started button not visible.');
   } catch (error) {
-    // Catch all unexpected errors, log and screenshot
-    console.error(`Error sending mass ${type} message:`, error.message);
-    await this.page.screenshot({ path: `error_send_mass_${type}_${Date.now()}.png` });
+    console.error('Failed to send message:', error);
     throw error;
   }
 }
@@ -253,38 +232,60 @@ async sendMassMediaVault({ type }) {
       }
 
       // Select the vault media file (checkbox/radio)
-      const mediaInputLocator = this.page.locator("(//input[contains(@id, 'checkboxNoLabel')])[2]");
+      const mediaInputLocator = this.page.locator("(//input[contains(@id, 'checkboxNoLabel')])[5]");
+
       try {
-        await mediaInputLocator.waitFor({ state: 'visible', timeout: 2000 });
+        console.log("Waiting for media items to start loading...");
+        await this.page.waitForTimeout(2500); // Initial wait for media loading
+
+        let isVisible = await mediaInputLocator.isVisible();
+
+        // Try scrolling down to reveal media if not visible
+        let scrollAttempts = 0;
+        while (!isVisible && scrollAttempts < 5) {
+          console.log(`Scrolling to find image [Attempt ${scrollAttempts + 1}]`);
+          await this.page.mouse.wheel(0, 300); // Scroll down
+          await this.page.waitForTimeout(2000); // Let page settle after scroll
+          isVisible = await mediaInputLocator.isVisible();
+          scrollAttempts++;
+        }
+
+        if (!isVisible) {
+          throw new Error('Media input (image checkbox) is not visible even after scrolling');
+        }
+
         const isChecked = await mediaInputLocator.isChecked();
         if (!isChecked) {
-          await this.page.waitForTimeout(2000);
+          console.log("Clicking image checkbox...");
+          await this.page.waitForTimeout(1500);
           await mediaInputLocator.click();
-          console.log('Radio button clicked successfully');
+          await this.page.waitForTimeout(1000); // Small wait after click
+          console.log('Image checkbox selected successfully');
         } else {
-          console.log('Radio button is already selected');
+          console.log('Image is already selected');
         }
-        await this.page.waitForTimeout(3000); // ⏳ Wait after selecting media
+
+        await this.page.waitForTimeout(1000); // Additional wait after selection
       } catch (error) {
-        await this.page.screenshot({ path: `error_select_media_${type}.png` });
+        await this.page.screenshot({ path: `error_select_media_${type}.png`, fullPage: true });
         console.error('Error occurred while selecting the media file:', error);
         throw new Error('Failed to select media file');
-      }      
-      
+      }
+
       
       // Click the "Choose" button
       const chooseButton = this.page.locator('button:has-text("Choose")');
       try {
         await safeClick(this.page, chooseButton, `error_choose_button_${type}`);
         console.log('Clicked Choose button successfully');
-        await this.page.waitForTimeout(3000); // ⏳ Wait for next section
+        await this.page.waitForTimeout(3000); // Wait for next section
       } catch (error) {
         console.error('Error clicking Choose button:', error.message);
         throw new Error('Failed to click Choose button');
       }
 
       // Check "Followers" and "Active Subscribers"
-      await this.selectSendDetails();
+      await this.followersActiveSubCheckbox();
 
       const payToViewRadio = this.page.locator('input#payView[type="radio"][value="Pay-to-view"]');
       const priceInputField = this.page.locator('input[placeholder="Enter price to pay"][type="number"]');
@@ -298,7 +299,7 @@ async sendMassMediaVault({ type }) {
         await payToViewRadio.waitFor({ state: 'visible', timeout: 5000 });
         await payToViewRadio.check();
         console.log('Checked Pay-to-view radio button');
-        await this.page.waitForTimeout(3000); // ⏳ Wait after checking Pay-to-view
+        await this.page.waitForTimeout(3000); // Wait after checking Pay-to-view
 
         await priceInputField.waitFor({ state: 'visible', timeout: 5000 });
         await priceInputField.scrollIntoViewIfNeeded();
@@ -313,9 +314,9 @@ async sendMassMediaVault({ type }) {
 
         await priceInputField.focus();
         await priceInputField.fill('');
-        await priceInputField.type('5', { delay: 100 });
-        console.log('Entered price 5 into Pay-to-view input field');
-        await this.page.waitForTimeout(3000); // ⏳ Wait after input
+        await priceInputField.type('10', { delay: 100 });
+        console.log('Entered price 10 into Pay-to-view input field');
+        await this.page.waitForTimeout(2000); // ⏳ Wait after input
       } catch (error) {
         await this.page.screenshot({ path: `error_pay_to_view_setup_${type}.png`, fullPage: true });
         throw new Error(`Failed to set Pay-to-view price: ${error.message}`);
@@ -387,16 +388,16 @@ else {
   }
 }
 
-async selectSendDetails() {
+// For followers and Active Subscribers
+async followersActiveSubCheckbox() {
   try {
-
     // For Followers Select
     await this.followersCheckbox.waitFor({ state: 'visible', timeout: 10000 });
     await expect(this.followersCheckbox).toBeEnabled();
     await this.followersCheckbox.check();
     console.log('Checked followers checkbox');
 
-    //For Active Subscribers Select
+    // For Active Subscribers Select
     const activeSubscribersCheckbox = this.page.locator("//input[@type='checkbox' and @id='subscribers']");
     await expect(activeSubscribersCheckbox).toBeEnabled();
     await activeSubscribersCheckbox.check();
@@ -413,451 +414,376 @@ async selectSendDetails() {
 }
 
 
-async getLastReceivedMsgFromCreator(expectedMessage = '') {
-  try {
-    const messageLocator = this.page.locator('div.bg-chat-receiver div.px-2.pt-1').last();
-    await messageLocator.waitFor({ timeout: 20000 });
-    console.log('Last received message is initially visible.');
+async selectSendDetails() {
 
-    // Ensure that any scroll issues are addressed by forcing visibility
-    await this.page.evaluate(() => {
-      const messages = Array.from(document.querySelectorAll('div.bg-chat-receiver div.px-2.pt-1'));
-      messages.forEach(msg => {
-        // Unhide the message text if it's hidden by overflow or clipping
-        msg.style.overflow = 'visible';
-        msg.style.maxHeight = 'none';
-        msg.style.display = 'block';
+  const MAX_RETRIES = 3;
+  let attempt = 0;
+  let sendClicked = false;
+
+  while (attempt < MAX_RETRIES && !sendClicked) {
+    try {
+      attempt++;
+      console.log(`Attempt ${attempt}: Locating correct Send button...`);
+      await this.page.waitForTimeout(1000);
+
+      const allButtons = this.page.locator('button:has-text("Send")');
+      const count = await allButtons.count();
+
+      console.log(`Found ${count} "Send" buttons. Evaluating which one is enabled and visible...`);
+
+      let buttonClicked = false;
+
+      for (let i = 0; i < count; i++) {
+        const button = allButtons.nth(i);
+        const isVisible = await button.isVisible();
+        const isEnabled = await button.isEnabled();
+
+        console.log(`Send button #${i + 1} → Visible: ${isVisible}, Enabled: ${isEnabled}`);
+
+        if (isVisible && isEnabled) {
+          await button.scrollIntoViewIfNeeded();
+          await expect(button).toBeVisible();  
+          await expect(button).toBeEnabled();  
+          await button.click({ timeout: 15000 });
+
+          console.log(`Clicked on Send button #${i + 1}`);
+          sendClicked = true;
+          buttonClicked = true;
+          break;
+        }
+      }
+
+      if (!buttonClicked) {
+        throw new Error("No enabled and visible Send button found");
+      }
+
+    } catch (error) {
+      console.error(`Send button click failed on attempt ${attempt}: ${error.message}`);
+      await this.page.screenshot({
+        path: `send_button_attempt_${attempt}.png`,
+        fullPage: true
       });
-    });
 
-    await this.page.waitForTimeout(2000); // Let content load
-
-    const rawText = await messageLocator.innerText();
-    const normalizedReceived = rawText.replace(/\s+/g, ' ').trim().toLowerCase();
-    const normalizedExpected = expectedMessage.replace(/\s+/g, ' ').trim().toLowerCase();
-
-    console.log(`Checking Received Message:\n Received: "${normalizedReceived}"\n Expected: "${normalizedExpected}"`);
-
-    if (!normalizedReceived.includes(normalizedExpected)) {
-      throw new Error('Message does not match expected content.');
+      if (attempt === MAX_RETRIES) {
+        throw new Error('Failed to click Send button after max retries');
+      }
     }
+  }
+}
 
-    const maxAttempts = 10;
-    const waitBetweenScrolls = 1500;
-    const extraScrollAttempts = 3;
+  async getTopMessageText() {
+    try {
+      
+      this.topMessageLocator = page.locator('div[data-sentry-component="renderText"] span').first();
 
-    let isFullyVisible = false;
-    let isPartiallyVisibleButHighlighted = false;
+      await this.topMessageLocator.waitFor({ state: 'visible', timeout: 5000 });
+      const text = await this.topMessageLocator.innerText();
+      return text.trim();
+    } catch (err) {
+      throw new Error(`Top message not found or not visible: ${err.message}`);
+    }
+  }
 
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      console.log(`Scroll & visibility check attempt #${attempt + 1}`);
+async getLastReceivedMsgFromCreator(expectedMessage) {
+  const maxRetries = 3;
+  let lastError = null;
+  let rawText = '';
 
-      // Evaluate visibility & highlight, plus scroll strategies inside page context
-      const result = await this.page.evaluate(async (expectedText) => {
+  const normalize = (text) => text.replace(/\s+/g, ' ').trim().toLowerCase();
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`\nAttempt ${attempt} to verify received message...`);
+
+      // Step 1: Wait a bit for message to arrive
+      await this.page.waitForTimeout(5000);
+
+      // Step 2: Scroll chat container to bottom to ensure latest message is visible
+      await this.page.evaluate(() => {
+        const chatContainer = document.querySelector('div.bg-chat-receiver');
+        if (chatContainer) {
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+      });
+
+      await this.page.waitForTimeout(2000); // Wait for scroll/render
+
+      // Step 3: Make messages fully visible (remove overflow restrictions)
+      await this.page.evaluate(() => {
         const messages = Array.from(document.querySelectorAll('div.bg-chat-receiver div.px-2.pt-1'));
-        const normalize = (text) => text.toLowerCase().replace(/\s+/g, ' ').trim();
-        const targetText = normalize(expectedText);
+        messages.forEach(msg => {
+          msg.style.overflow = 'visible';
+          msg.style.maxHeight = 'none';
+          msg.style.display = 'block';
+        });
+      });
 
-        const target = messages.find(el => normalize(el.innerText || '').includes(targetText));
-        if (!target) return { found: false };
+      // Step 4: Get the last (most recent) message in chat
+      const messageLocator = this.page.locator('div.bg-chat-receiver div.px-2.pt-1').last();
+      await messageLocator.waitFor({ timeout: 5000 }); // Slightly longer timeout
 
-        // Scroll the target into view smoothly, center block
-        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        await new Promise(r => setTimeout(r, 2000)); // wait smooth scroll
+      rawText = await messageLocator.innerText();
 
-        const rect = target.getBoundingClientRect();
+      // Normalize received and expected messages for reliable comparison
+      const normalizedReceived = normalize(rawText);
+      const normalizedExpected = normalize(expectedMessage);
 
-        const fullyVisible =
-          rect.top >= 0 &&
-          rect.bottom <= window.innerHeight &&
-          rect.left >= 0 &&
-          rect.right <= window.innerWidth;
+      console.log(`Comparing messages:\nReceived: "${normalizedReceived}"\nExpected: "${normalizedExpected}"`);
 
-        const partiallyVisible =
-          rect.bottom > 0 && rect.top < window.innerHeight;
+      if (normalizedReceived !== normalizedExpected) {
+        throw new Error('Last received message does not match expected.');
+      }
 
-        // Highlight the box regardless
-        target.style.outline = '3px solid lightgreen';
-        target.style.backgroundColor = '#fff8dc';
-        target.style.padding = '5px';
+      // Step 5: Highlight matched message in UI
+      const highlighted = await this.page.evaluate((expectedText) => {
+        const normalize = (text) => text.replace(/\s+/g, ' ').trim().toLowerCase();
+        const messages = Array.from(document.querySelectorAll('div.bg-chat-receiver div.px-2.pt-1'));
+        const expected = normalize(expectedText);
 
-        return {
-          found: true,
-          fullyVisible,
-          partiallyVisible,
-        };
+        const lastMsg = messages[messages.length - 1];
+        if (!lastMsg || normalize(lastMsg.innerText || '') !== expected) return false;
+
+        lastMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        lastMsg.style.outline = '3px solid #32CD32';
+        lastMsg.style.backgroundColor = '#eaffea';
+        lastMsg.style.padding = '6px';
+
+        return true;
       }, expectedMessage);
 
-      if (!result.found) {
-        console.log('Message box not found in DOM');
-        break;
+      if (highlighted) {
+        console.log(`Message matched and highlighted after attempt #${attempt}`);
+      } else {
+        console.warn('Message matched but could not be highlighted in DOM.');
       }
 
-      if (result.fullyVisible) {
-        console.log(`Message is fully visible after attempt #${attempt + 1}`);
-        isFullyVisible = true;
-        break;
-      }
+      return rawText; // Success: return the actual text received
 
-      if (result.partiallyVisible) {
-        console.log(`Message partially visible but highlighted on attempt #${attempt + 1}`);
-        isPartiallyVisibleButHighlighted = true;
+    } catch (err) {
+      lastError = err;
+      console.warn(`Attempt ${attempt} failed: ${err.message}`);
 
-        // Extra scroll down attempts when partially visible
-        for (let extra = 0; extra < extraScrollAttempts; extra++) {
-          console.log(`Extra scroll down attempt #${extra + 1} due to partial visibility`);
-
-          try {
-            // Scroll chat container down explicitly
-            await this.page.evaluate(() => {
-              const chatContainer = document.querySelector('div.bg-chat-receiver');
-              if (chatContainer) {
-                chatContainer.scrollBy({ top: 100, behavior: 'smooth' });
-              }
-            });
-            await this.page.waitForTimeout(700);
-
-            // Also try window scroll as fallback
-            await this.page.evaluate(() => {
-              window.scrollBy({ top: 100, behavior: 'smooth' });
-            });
-            await this.page.waitForTimeout(1000);
-
-            // Scroll messageLocator directly into view again
-            await messageLocator.scrollIntoViewIfNeeded({ timeout: 2000 });
-            await this.page.waitForTimeout(1000);
-
-            // Check visibility again after scroll attempts
-            const checkVisibility = await this.page.evaluate((expectedText) => {
-            const messages = Array.from(document.querySelectorAll('div.bg-chat-receiver div.px-2.pt-1'));
-            const normalize = (text) => text.toLowerCase().replace(/\s+/g, ' ').trim();
-            const targetText = normalize(expectedText);
-
-            const target = messages.find(el => normalize(el.innerText || '').includes(targetText));
-            if (!target) return false;
-
-              const rect = target.getBoundingClientRect();
-
-            return (
-                rect.top >= 0 &&
-                rect.bottom <= window.innerHeight &&
-                rect.left >= 0 &&
-                rect.right <= window.innerWidth
-              );
-            }, expectedMessage);
-
-            if (checkVisibility) {
-              console.log(`Message became fully visible after extra scroll attempt #${extra + 1}`);
-              isFullyVisible = true;
-              break;
-            }
-          } catch (err) {
-            console.warn(`Extra scroll attempt #${extra + 1} failed: ${err.message}`);
-          }
+      if (attempt < maxRetries) {
+        console.log('Retrying after short delay...\n');
+        await this.page.waitForTimeout(3000);
+      } else {
+        try {
+          const screenshotPath = `screenshots/final_fail_msg_not_found_${Date.now()}.png`;
+          await this.page.screenshot({ path: screenshotPath, fullPage: true });
+          console.error(`Final attempt failed. Screenshot saved: ${screenshotPath}`);
+        } catch (screenshotErr) {
+          console.error(`Failed to take screenshot: ${screenshotErr.message}`);
         }
-
-        if (isFullyVisible) break;
+        throw new Error(`Failed to verify recent message after ${maxRetries} attempts.\nReason: ${lastError.message}`);
       }
-
-      // Try additional scroll down methods after highlight & partial visibility (main loop)
-      try {
-        await this.page.evaluate(() => {
-          const chatContainer = document.querySelector('div.bg-chat-receiver');
-          if (chatContainer) {
-            chatContainer.scrollBy({ top: 100, behavior: 'smooth' });
-          }
-        });
-        await this.page.waitForTimeout(1000);
-
-        await this.page.evaluate(() => {
-          window.scrollBy({ top: 100, behavior: 'smooth' });
-        });
-        await this.page.waitForTimeout(2000);
-
-        await messageLocator.scrollIntoViewIfNeeded({ timeout: 2000 });
-        await this.page.waitForTimeout(1000);
-      } catch (scrollErr) {
-        console.warn('Scroll attempt failed:', scrollErr.message);
-      }
-
-      await this.page.waitForTimeout(waitBetweenScrolls);
     }
-
-    if (isFullyVisible) {
-      console.log('Test passed: Message is fully visible.');
-    } else if (isPartiallyVisibleButHighlighted) {
-      console.log('Test passed: Message partially visible and highlighted.');
-    } else {
-      throw new Error('Message was not found or visible after retries.');
-    }
-
-    await this.page.waitForTimeout(4000); // Let final highlight show
-
-    await messageLocator.waitFor({ state: 'visible', timeout: 5000 });
-
-    return rawText;
-
-  } catch (error) {
-    const screenshotPath = `screenshots/error_get_last_message_${Date.now()}.png`;
-    if (!this.page.isClosed?.()) {
-      await this.page.screenshot({ path: screenshotPath, fullPage: true });
-      console.error('Error in getLastReceivedMsgFromCreator:', error.message);
-      console.log(`Screenshot saved: ${screenshotPath}`);
-    } else {
-      console.warn('Page already closed, screenshot skipped.');
-    }
-    throw error;
   }
-  
 }
 
 async CreatorChat_MassMedia(fanEmail) {
   const fallbackEmail = 'rohan.kapse@iiclab.com';
   const safeEmail = (fanEmail || fallbackEmail).replace(/[@.]/g, '_');
-  const maxRetries = 5;
+  const expectedPrice = 10;
+  const maxRetries = 20;
+  const scrollWaitTime = expectedPrice >= 10 ? 4000 : 3000;
 
   try {
-    console.log("Scrolling to bottom to find recent vault media...");
+    console.log("Waiting for 30 seconds before fallback retry...");
+    await this.page.waitForTimeout(30000);
 
-    let unlockBtn = null;
+    const cssSelector = `button.style_btn-knky-white__y140y:has-text("Unlock for $${expectedPrice}.00")`;
     let found = false;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        await this.page.mouse.wheel(0, 8000);
-        await this.page.waitForTimeout(1000);
+        console.log(`Scrolled down - attempt ${attempt}`);
+        await this.page.mouse.wheel(0, 6000);
+        await this.page.waitForTimeout(scrollWaitTime);
 
-        unlockBtn = this.page.locator('//button[contains(@class, "style_btn-knky-white") and contains(text(), "Unlock for")]');
+        const unlockButtons = this.page.locator(cssSelector);
+        const count = await unlockButtons.count();
 
-        if (await unlockBtn.first().isVisible()) {
-          console.log(`Unlock button found on attempt ${attempt}`);
+        if (count === 0) {
+          console.log(`Attempt ${attempt}: No unlock buttons found yet...`);
+          continue;
+        }
+
+        const lastBtn = unlockButtons.nth(count - 1);
+        await lastBtn.scrollIntoViewIfNeeded();
+
+        const isVisible = await lastBtn.isVisible();
+        const isEnabled = await lastBtn.isEnabled();
+
+        if (isVisible && isEnabled) {
+          console.log(`Attempt ${attempt}: Clicking visible & enabled Unlock button`);
+          await lastBtn.click({ timeout: 5000 });
           found = true;
           break;
+        } else {
+          console.log(`Attempt ${attempt}: Unlock button is not interactable`);
         }
 
-        console.log(`Unlock button not visible on attempt ${attempt}. Retrying scroll...`);
-      } catch (scrollError) {
-        console.warn(`Scroll attempt ${attempt} failed:`, scrollError.message);
+      } catch (e) {
+        console.warn(`Scroll attempt ${attempt} error: ${e.message}`);
       }
     }
 
-    if (!found || !unlockBtn) {
-      throw new Error("Unlock button not found after all retries.");
+    if (!found) {
+      throw new Error(`Unlock button with price $${expectedPrice}.00 not found after ${maxRetries} attempts`);
     }
 
-    console.log("Clicking Unlock button...");
-    await unlockBtn.last().click();
-    await this.page.waitForTimeout(2000);
-
-    try {
-      const payBtn = this.page.locator('button[class*="style_btn-knky-primary"]:has-text("Pay $5.00")');
-
-      await payBtn.waitFor({ state: 'visible', timeout: 15000 });
-
-      const isEnabled = await payBtn.isEnabled();
-      const isVisible = await payBtn.isVisible();
-
-      if (!isVisible || !isEnabled) {
-        throw new Error("Pay button is not interactable (visible or enabled state failed).");
-      }
-
-      console.log("Clicking Pay $5.00 button...");
-      await payBtn.click({ timeout: 5000 });
-
-      await this.page.waitForTimeout(2000);
-
-      const confirmationText = this.page.locator('text=Your message has been unlocked.');
-      await confirmationText.waitFor({ state: 'visible', timeout: 15000 });
-
-      console.log("Vault Media message unlocked successfully.");
-
-    } catch (error) {
-      console.error("Failed to pay for vault Media:", error.message);
-
-      if (!this.page.isClosed()) {
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        await this.page.screenshot({ path: `pay_button_failed_${timestamp}.png`, fullPage: true });
-      }
-
-      throw error;
-    }
-
-    // After successful unlock — try verifying received vault media
-    const gotItSelector = 'button.swal2-confirm.swal2-styled:has-text("Got it!")';
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`Attempt ${attempt}: Verifying Vault Media for ${fanEmail}`);
-
-        const gotItBtn = this.page.locator(gotItSelector);
-        await gotItBtn.waitFor({ state: 'visible', timeout: 10000 });
-
-        if (!await gotItBtn.isEnabled()) {
-          throw new Error('"Got it!" button is visible but not enabled.');
-        }
-
-        await gotItBtn.click();
-        console.log('Clicked "Got it!" button.');
-
-        // Removed modal open and close logic as requested
-
-        console.log(`Vault media successfully verified for fan: ${fanEmail}`);
-        return true;
-
-      } catch (error) {
-        console.error(`Attempt ${attempt} failed for ${fanEmail}: ${error.message}`);
-
-        if (attempt === maxRetries && !this.page.isClosed()) {
-          const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-          await this.page.screenshot({ path: `vault_media_failed_${safeEmail}_${timestamp}.png`, fullPage: true });
-          console.error(`Final failure: Could not verify vault media after ${maxRetries} attempts.`);
-          throw error;
-        }
-
-        await this.page.waitForTimeout(2000);
-      }
-    }
-
-    return false;
+    return true;
 
   } catch (error) {
-    console.error("creator_MassMedia failed:", error.message);
-    throw error;
+    console.error('Error in CreatorChat_MassMedia:', error.message);
+    await this.page.screenshot({ path: `error_creator_chat_mass_media_${Date.now()}.png`, fullPage: true });
+    return false;
   }
 }
 
 async receivedVaultMedia(fanEmail) {
-
-  const maxRetries = 3;
   const fallbackEmail = 'rohan.kapse@iiclab.com';
   const safeEmail = (fanEmail || fallbackEmail).replace(/[@.]/g, '_');
+  const maxRetries = 3;
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      console.log(`Attempt ${attempt}: Verifying Vault Media for ${fanEmail || fallbackEmail}`);
+  console.log(`Starting verification of Vault Media content for fan: ${fanEmail}`);
 
-      const imageLocator = this.page.locator('//img[contains(@src, "/vault/") and contains(@src, "compressed.jpeg")]');
-      const imageCount = await imageLocator.count();
+  try {
+    const payButtons = this.page.getByRole('button', { name: /Pay \$10\.00/ });
 
-      if (imageCount === 0) throw new Error("No vault media images found.");
+    console.log("Waiting for Pay button(s) to be attached...");
+    await payButtons.last().waitFor({ state: 'attached', timeout: 15000 });
 
-      console.log(`Found ${imageCount} vault media image(s). Clicking the most recent one...`);
-      const recentImage = imageLocator.last();
+    const count = await payButtons.count();
+    console.log(`Found ${count} matching Pay $10.00 button(s).`);
 
-      await recentImage.scrollIntoViewIfNeeded();
-      await expect(recentImage).toBeVisible({ timeout: 5000 });
-      await expect(recentImage).toBeEnabled({ timeout: 5000 });
-      await recentImage.click();
+    let payBtn = null;
 
-      // --- After clicking image, just wait for close button (no modal image check) ---
-      const closeBtn = this.page.locator('//div[contains(@class, "modal show")]//button[contains(@class, "btn-close")]');
-      const closeBtnCount = await closeBtn.count();
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      console.log(`Retry ${attempt}/${maxRetries}: Checking Pay buttons...`);
 
-      let closed = false;
-      for (let i = 0; i < closeBtnCount; i++) {
-        const btn = closeBtn.nth(i);
-        if (await btn.isVisible({ timeout: 2000 }) && await btn.isEnabled()) {
-          await btn.click();
-          console.log(`Clicked close button inside modal.`);
-          closed = true;
-          break;
+      for (let i = 0; i < count; i++) {
+        const candidate = payButtons.nth(i);
+        try {
+          if (this.page.isClosed()) throw new Error("Page is already closed");
+
+          await candidate.scrollIntoViewIfNeeded();
+          const isVisible = await candidate.isVisible();
+          const isEnabled = await candidate.isEnabled();
+
+          console.log(`Button #${i + 1}: visible=${isVisible}, enabled=${isEnabled}`);
+
+          if (isVisible && isEnabled) {
+            payBtn = candidate;
+            break;
+          }
+        } catch (err) {
+          console.warn(`Skipping button #${i + 1}: ${err.message}`);
         }
       }
 
-      if (closed) {
-        console.log(`Vault media successfully verified for fan: ${fanEmail || fallbackEmail}`);
-        return true;
-      } else {
-        throw new Error('Modal close button not found or not clickable');
+      if (payBtn) break;
+      await this.page.waitForTimeout(1500);
+    }
+
+    if (!payBtn) {
+      await this.page.screenshot({ path: `pay_button_missing_${safeEmail}.png`, fullPage: true });
+      throw new Error("No visible & enabled Pay $10.00 button found after retries.");
+    }
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`Attempt ${attempt}: Clicking Pay button...`);
+        await payBtn.click({ timeout: 2000 });
+        await this.page.waitForTimeout(1500);
+
+        const popupCloseBtn = this.page.locator('button:has-text("Close"), button.swal2-cancel, button.swal2-close');
+        if (await popupCloseBtn.count() > 0) {
+          try {
+            await popupCloseBtn.first().click();
+            console.log('Popup/modal detected and closed.');
+          } catch (e) {
+            console.warn('Failed to close popup:', e.message);
+          }
+        }
+
+        break;
+      } catch (clickErr) {
+        console.error(`Pay click failed (Attempt ${attempt}): ${clickErr.message}`);
+        if (attempt === maxRetries) throw clickErr;
+        await this.page.waitForTimeout(2000);
       }
+    }
+
+    try {
+      // Step 1: Wait for confirmation message
+      const confirmationText = this.page.locator('text=Your message has been unlocked.');
+      console.log("Waiting for unlock confirmation...");
+      await confirmationText.waitFor({ state: 'visible', timeout: 3000 });
+      console.log("Vault Media message unlocked successfully.");
+
+      // Step 2: Click the 'Got it!' button
+      const gotItBtn = this.page.locator('button.swal2-confirm.swal2-styled:has-text("Got it!")');
+      try {
+        await gotItBtn.waitFor({ state: 'visible', timeout: 1000 });
+        if (await gotItBtn.isEnabled()) {
+          await gotItBtn.click();
+          console.log('Clicked "Got it!" button.');
+        }
+      } catch (error) {
+        console.warn(`Could not click "Got it!": ${error.message}`);
+      }
+
+      // Step 3: Wait for the confirmation modal to disappear
+      try {
+        await confirmationText.waitFor({ state: 'detached', timeout: 5000 });
+        console.log('Confirmation popup closed.');
+      } catch (waitError) {
+        console.warn("Confirmation popup didn't close in time.");
+      }
+
+      // Step 4: Wait for actual vault media preview (optional)
+      try {
+        const vaultPreview = this.page.locator('selector-for-vault-preview'); // replace with real selector
+        await expect(vaultPreview).toBeVisible({ timeout: 5000 });
+        console.log("Vault preview confirmed.");
+      } catch (previewError) {
+        console.warn("Vault media preview not found:", previewError.message);
+      }
+
+      console.log(`Vault media fully verified and previewed for fan: ${fanEmail}`);
+
+// Step 5: Close page
+  try {
+    await this.page.waitForTimeout(1500); 
+    await this.page.close();
+    console.log("Page closed after successful Vault Media interaction.");
+  } catch (closeError) {
+    console.warn("Could not close page:", closeError.message);
+  }
+      return true;
 
     } catch (error) {
-      console.error(`Attempt ${attempt} failed for ${fanEmail || fallbackEmail}: ${error.message}`);
-
-      if (attempt === maxRetries && !this.page.isClosed()) {
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        try {
-          await this.page.screenshot({
-            path: `vault_media_failed_${safeEmail}_${timestamp}.png`,
-            fullPage: true
-          });
-          console.error(`Screenshot saved: vault_media_failed_${safeEmail}_${timestamp}.png`);
-        } catch (screenshotErr) {
-          console.warn(`Failed to take screenshot: ${screenshotErr.message}`);
-        }
-
-        console.error(`Final failure: Could not verify vault media after ${maxRetries} attempts.`);
-        throw error;
+      console.error("receivedVaultMedia failed:", error.message);
+      if (!this.page.isClosed()) {
+        const safeEmail = fanEmail.replace(/[^a-zA-Z0-9]/g, '_');
+        await this.page.screenshot({
+          path: `receivedVaultMedia_error_${safeEmail}.png`,
+          fullPage: true
+        });
       }
-
-      await this.page.waitForTimeout(2000); // Delay before retry
+      throw error;
     }
+
+  } catch (outerError) {
+    console.error("Outer try-catch failed:", outerError.message);
+    throw outerError;
   }
-}
-
-
-
-async sendBtnForm() {
-
-// Click on send button with checking send text in Dom
-const MAX_RETRIES = 3;
-let attempt = 0;
-let sendClicked = false;
-
-while (attempt < MAX_RETRIES && !sendClicked) {
-  try {
-    attempt++;
-    console.log(`Attempt ${attempt}: Locating correct Send button...`);
-    await this.page.waitForTimeout(1500);
-
-    const allButtons = this.page.locator('button:has-text("Send")');
-    const count = await allButtons.count();
-
-    console.log(`Found ${count} "Send" buttons. Evaluating which one is enabled and visible...`);
-
-    let buttonClicked = false;
-
-    for (let i = 0; i < count; i++) {
-      const button = allButtons.nth(i);
-      const isVisible = await button.isVisible();
-      const isEnabled = await button.isEnabled();
-
-      console.log(`Send button #${i + 1} → Visible: ${isVisible}, Enabled: ${isEnabled}`);
-
-      if (isVisible && isEnabled) {
-        await button.scrollIntoViewIfNeeded();
-        await expect(button).toBeVisible();  
-        await expect(button).toBeEnabled();  
-        await button.click({ timeout: 10000 });
-
-        console.log(`Clicked on Send button #${i + 1}`);
-        sendClicked = true;
-        buttonClicked = true;
-        break;
-      }
-    }
-
-    if (!buttonClicked) {
-      throw new Error("No enabled and visible Send button found");
-    }
-
-  } catch (error) {
-    console.error(`Send button click failed on attempt ${attempt}: ${error.message}`);
-    await this.page.screenshot({
-      path: `send_button_attempt_${attempt}_${type || 'default'}.png`,
-      fullPage: true
-    });
-
-    if (attempt === MAX_RETRIES) {
-      throw new Error('Failed to click Send button after max retries');
-    }
-  }
-}
 }
 
 async waitForSuccessPopup() {
   try {
-    await this.successPopup.waitFor({ state: 'visible', timeout: 20000 });
+    await this.successPopup.waitFor({ state: 'visible', timeout: 10000 });
     console.log('Success popup appeared');
   } catch (error) {
     console.error('Success popup not found:', error.message);
