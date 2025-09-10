@@ -12,6 +12,7 @@ class ChatPage {
     this.page = page;
 
     // Define the locators
+    
     this.getStartedMassChat = page.locator("//button[normalize-space(text())='Get Started']");
     this.messageText = page.locator("//textarea[@placeholder='Type your message here']");
     this.mediaRadio = page.locator("//input[@type='radio' and @value='Media']");
@@ -26,19 +27,17 @@ class ChatPage {
   
     this.successPopup = this.page.locator("//h2[normalize-space()='Message sent successfully']");
     this.successCloseButton = this.page.locator("//button[contains(@class, 'swal2-confirm') and normalize-space(text())='Close']");
-
- 
-
+    
   }
 
 async navigateToChat() {
   try {
-    if (await this.testVersAccept.isVisible({ timeout: 20000 })) {
+    if (await this.testVersAccept.isVisible({ timeout: 30000 })) {
       await this.testVersAccept.click();
       console.log('Accepted test version');
     }
 
-    await this.chatoption.waitFor({ state: 'visible', timeout: 20000 });
+    await this.chatoption.waitFor({ state: 'visible', timeout: 30000 });
     await this.chatoption.click();
     console.log('Clicked Chat icon');
 
@@ -73,6 +72,7 @@ async chatWithCreator(retryCount = 0) {
 
   try {
     try {
+
       await this.page.waitForTimeout(2000);
       console.log(`[${retryCount}] Starting chatWithCreator`);
      
@@ -171,8 +171,8 @@ async scrollToBottom() {
     await this.page.waitForTimeout(2000);
   }
 
-async sendMassMessageFromData({ type, content }) {
-  const messageToSend = "Hii all of my followers...";
+async sendMassMessageFromData({ type}) {
+  const messageToSend = "Hello my fans good afternoon";
 
   try {
     if (await this.getStartedMassChat.isVisible({ timeout: 15000 })) {
@@ -448,7 +448,7 @@ async selectSendDetails() {
           await button.scrollIntoViewIfNeeded();
           await expect(button).toBeVisible();  
           await expect(button).toBeEnabled();  
-          await button.click({ timeout: 10000 });
+          await button.click({ timeout: 15000 });
 
           console.log(`Clicked on Send button #${i + 1}`);
           sendClicked = true;
@@ -490,118 +490,95 @@ async selectSendDetails() {
 
 
 async getLastReceivedMsgFromCreator(expectedMessage = '') {
-  const maxRetries = 3;
-  let lastError = null;
-  let rawText = '';
+ 
+const maxRetries = 3;
+let lastError = null;
+let rawText = '';
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      console.log(`\n Attempt ${attempt} to verify received message...`);
+for (let attempt = 1; attempt <= maxRetries; attempt++) {
+  try {
+    console.log(`\nAttempt ${attempt} to verify received message...`);
 
-      const messageLocator = this.page.locator('div.bg-chat-receiver div.px-2.pt-1').last();
-      await messageLocator.waitFor({ timeout: 3000 });
+    // Step 1: Wait for 5 seconds to allow message to appear
+    await this.page.waitForTimeout(5000);
 
-      await this.page.evaluate(() => {
-        const messages = Array.from(document.querySelectorAll('div.bg-chat-receiver div.px-2.pt-1'));
-        messages.forEach(msg => {
-          msg.style.overflow = 'visible';
-          msg.style.maxHeight = 'none';
-          msg.style.display = 'block';
-        });
+    // Step 2: Scroll to bottom to ensure latest message is visible
+    await this.page.evaluate(() => {
+      const chatContainer = document.querySelector('div.bg-chat-receiver');
+      if (chatContainer) {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+    });
+
+    await this.page.waitForTimeout(2000); // Give time for scroll and rendering
+
+    // Step 3: Make sure all messages are visible
+    await this.page.evaluate(() => {
+      const messages = Array.from(document.querySelectorAll('div.bg-chat-receiver div.px-2.pt-1'));
+      messages.forEach(msg => {
+        msg.style.overflow = 'visible';
+        msg.style.maxHeight = 'none';
+        msg.style.display = 'block';
       });
+    });
 
-      await this.page.waitForTimeout(1000);
+    // Step 4: Get the last (most recent) message only
+    const messageLocator = this.page.locator('div.bg-chat-receiver div.px-2.pt-1').last();
+    await messageLocator.waitFor({ timeout: 3000 });
 
-      rawText = await messageLocator.innerText();
-      const normalizedReceived = rawText.replace(/\s+/g, ' ').trim().toLowerCase();
-      const normalizedExpected = expectedMessage.replace(/\s+/g, ' ').trim().toLowerCase();
+    rawText = await messageLocator.innerText();
 
-      console.log(`Comparing messages:\n Received: "${normalizedReceived}"\n Expected: "${normalizedExpected}"`);
+    const normalize = text => text.replace(/\s+/g, ' ').trim().toLowerCase();
+    const normalizedReceived = normalize(rawText);
+    const normalizedExpected = normalize(expectedMessage);
 
-      if (!normalizedReceived.includes(normalizedExpected)) {
-        throw new Error(`Text mismatch. Message received does not match expected.`);
-      }
+    console.log(`Comparing messages:\n Received: "${normalizedReceived}"\n Expected: "${normalizedExpected}"`);
 
-      // === Scroll into view and check visibility ===
-      const maxScrollTries = 3;
-      let visible = false;
-      
+    if (normalizedReceived !== normalizedExpected) {
+      throw new Error('Message is mismatch. Last received message does not match expected.');
+    }
 
-      for (let scrollAttempt = 1; scrollAttempt <= maxScrollTries; scrollAttempt++) {
-        const visibility = await this.page.evaluate((expectedText) => {
-          const messages = Array.from(document.querySelectorAll('div.bg-chat-receiver div.px-2.pt-1'));
-          const normalize = (text) => text.toLowerCase().replace(/\s+/g, ' ').trim();
-          const targetText = normalize(expectedText);
+      // Step 5: Highlight the matched message
+      const highlighted = await this.page.evaluate((expectedText) => {
+      const messages = Array.from(document.querySelectorAll('div.bg-chat-receiver div.px-2.pt-1'));
+      const normalize = (text) => text.replace(/\s+/g, ' ').trim().toLowerCase();
+      const expected = normalize(expectedText);
 
-          const target = messages.find(el => normalize(el.innerText || '').includes(targetText));
-          if (!target) return { found: false };
+      const lastMsg = messages[messages.length - 1];
+      if (!lastMsg || normalize(lastMsg.innerText || '') !== expected) return false;
 
-          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          target.style.outline = '3px solid #90ee90';
-          target.style.backgroundColor = '#fff8dc';
-          target.style.padding = '6px';
+      lastMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      lastMsg.style.outline = '3px solid #32CD32';
+      lastMsg.style.backgroundColor = '#eaffea';
+      lastMsg.style.padding = '6px';
 
-          const rect = target.getBoundingClientRect();
-          const isVisible = (
-            rect.top >= 0 &&
-            rect.bottom <= window.innerHeight &&
-            rect.left >= 0 &&
-            rect.right <= window.innerWidth
-          );
+      return true;
+    }, expectedMessage);
 
-          return { found: true, isVisible };
-        }, expectedMessage);
+    if (highlighted) {
+      console.log(`Message matched and highlighted after attempt #${attempt}`);
+    } else {
+      console.warn('Message matched, but could not highlight it in DOM.');
+    }
 
-        if (!visibility.found) {
-          console.log(`Scroll attempt ${scrollAttempt}: Message not found in DOM`);
-        } else if (visibility.isVisible) {
-          console.log(`Scroll attempt ${scrollAttempt}: Message is fully visible`);
-          visible = true;
-          break;
-        } else {
-          console.log(`Scroll attempt ${scrollAttempt}: Message not fully visible, retrying scroll...`);
+    return rawText; // For success
 
-          await this.page.evaluate(() => {
-            const chatContainer = document.querySelector('div.bg-chat-receiver');
-            if (chatContainer) {
-              chatContainer.scrollBy({ top: 150, behavior: 'smooth' });
-            }
-          });
+  } catch (err) {
+    lastError = err;
+    console.warn(`Attempt ${attempt} failed: ${err.message}`);
 
-          await this.page.waitForTimeout(1000);
-
-          await this.page.evaluate(() => {
-            window.scrollBy({ top: 150, behavior: 'smooth' });
-          });
-
-          await this.page.waitForTimeout(1000);
-        }
-      }
-
-      if (!visible) {
-        console.warn('Message content matched but visibility could not be confirmed after scrolling.');
-      }
-
-      console.log(`Message verified and visible after attempt #${attempt}`);
-      return rawText;
-
-    } catch (err) {
-      lastError = err;
-      console.warn(`Attempt ${attempt} failed: ${err.message}`);
-
-      if (attempt < maxRetries) {
-        console.log(`Retrying after short delay...\n`);
-        await this.page.waitForTimeout(3000);
-      } else {
-        const screenshotPath = `screenshots/final_fail_msg_not_found_${Date.now()}.png`;
-        await this.page.screenshot({ path: screenshotPath, fullPage: true });
-        console.error(`Final attempt failed. Screenshot saved: ${screenshotPath}`);
-        throw new Error(`Failed to find expected message after ${maxRetries} attempts: ${lastError.message}`);
-      }
+    if (attempt < maxRetries) {
+      console.log(`Retrying after delay...\n`);
+      await this.page.waitForTimeout(3000);
+    } else {
+      const screenshotPath = `screenshots/final_fail_msg_not_found_${Date.now()}.png`;
+      await this.page.screenshot({ path: screenshotPath, fullPage: true });
+      console.error(`Final attempt failed. Screenshot saved: ${screenshotPath}`);
+      throw new Error(`Failed to find expected recent message after ${maxRetries} attempts: ${lastError.message}`);
     }
   }
 }
-
+}
 
 
 async CreatorChat_MassMedia(fanEmail) {

@@ -22,7 +22,7 @@ const chatData = getTestData('./data/testData.xlsx', 'massMsgSend_Data');
 const fanData = getTestData('./data/testData.xlsx', 'users_LoginData');
 
 // Test Settings
-test.use({ viewport: { width: 780, height: 700 } });
+test.use({ viewport: { width: 770, height: 700 } });
 test.setTimeout(60000);
 
 // Error Handler
@@ -106,9 +106,9 @@ test.describe.parallel('Mass Message Send and Fan Verification Tests', () => {
 
       try {
         await chat.followersActiveSubCheckbox();
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(1500);
         await chat.selectSendDetails();
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(1500);
         console.log('Selected send details for the message.');
       } catch (error) {
         await handleError(page, index, 'Select Send Details', error);
@@ -117,40 +117,49 @@ test.describe.parallel('Mass Message Send and Fan Verification Tests', () => {
       try {
         await chat.waitForSuccessPopup({ timeout: 15000 });
 
-        try {
-          await chat.closeSuccessPopup();
-          console.log('Closed success popup');
-        } catch (err) {
-          const path = `screenshots/error_closing_popup_${Date.now()}.png`;
-          await page.screenshot({ path, fullPage: true });
-          throw new Error(`Failed to close success popup. Screenshot: ${path}`);
-        }
-
-        await page.waitForTimeout(2000);
-        let isStillVisible = false;
-        try {
-          isStillVisible = await chat.successPopup?.isVisible({ timeout: 3000 });
-        } catch {
-          isStillVisible = false;
-        }
-
-        if (isStillVisible) {
-          const path = `screenshots/error_popup_still_visible_${Date.now()}.png`;
-          await page.screenshot({ path, fullPage: true });
-          throw new Error(`Success popup still visible after close. Screenshot: ${path}`);
-        }
-
-        console.log(`Mass ${messageType} message sent successfully by ${dataRow.CreatorEmail}`);
-        expect(true).toBeTruthy();
-
-        await page.waitForTimeout(10000);
-        await page.close();
-        await context.close();
-      } catch (error) {
-        await handleError(page, index, 'Submit Form', error);
+      try {
+        await chat.closeSuccessPopup();
+        console.log('Closed success popup...');
+      } catch (err) {
+        const path = `screenshots/error_closing_popup_${Date.now()}.png`;
+        await page.screenshot({ path, fullPage: true });
+        throw new Error(`Failed to close success popup. Screenshot: ${path}`);
       }
+
+      // Wait 5 seconds after closing the popup
+      await page.waitForTimeout(5000);
+
+      // Verify popup is not visible anymore
+      let isStillVisible = false;
+      try {
+        isStillVisible = await chat.successPopup?.isVisible({ timeout: 2000 });
+      } catch {
+        isStillVisible = false;
+      }
+
+      if (isStillVisible) {
+        const path = `screenshots/error_popup_still_visible_${Date.now()}.png`;
+        await page.screenshot({ path, fullPage: true });
+        throw new Error(`Success popup still visible after close. Screenshot: ${path}`);
+      }
+
+      //  Consider test is passed
+      console.log(`Mass ${messageType} message sent successfully by ${dataRow.CreatorEmail}`);
+      expect(true).toBeTruthy(); // Optional assertion
+
+    } catch (error) {
+      await handleError(page, index, 'Submit Form', error);
+    } finally { 
+      // Wait 3 seconds before closing the page
+      await page.waitForTimeout(3000);
+
+      await page.close();
+      await context.close();
+    }
     });
   });
+
+
 fanData.forEach((fan, index) => {
   test(`Fan Message Verification Test #${index + 1} - ${fan.FanEmail}`, async ({ browser }) => {
     test.setTimeout(300_000);
@@ -232,6 +241,9 @@ fanData.forEach((fan, index) => {
       console.error(`Test failed for fan ${fan.FanEmail}: ${error.message}`);
       throw error;
     } finally {
+      // Wait 3 seconds before closing the page
+      await page.waitForTimeout(3000);
+
       await page.close();
       await context.close();
     }
