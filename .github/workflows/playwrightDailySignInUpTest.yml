@@ -1,12 +1,12 @@
-name: Playwright MassMessage & VaultMedia Tests with Allure Reports
+name: Playwright Sign Up and Sign In Tests with Allure Reports
 
 on:
   schedule:
-    # 4:20 AM IST = 10:50 PM UTC
-    - cron: '50 22 * * *'
+    # 4:10 AM IST = 11:40 PM UTC
+    - cron: '40 23 * * *'
     
-    # 11:50 PM IST = 6:20 PM UTC
-    - cron: '20 18 * * *'
+    # 11:40 PM IST = 6:10 PM UTC
+    - cron: '10 18 * * *'
   workflow_dispatch: # Allow manual trigger
 
 jobs:
@@ -44,13 +44,13 @@ jobs:
           echo "USER3_EMAIL=${{ secrets.USER3_EMAIL }}" >> .env
           echo "USER3_PASSWORD=${{ secrets.USER3_PASSWORD }}" >> .env
 
-      - name: 🧪 Run massMessage and massVaultMedia tests only
+      - name: 🧪 Run Sign Up and Sign In tests only
         env:
           CI: true
         run: |
           npm run clean
-          npx playwright test parallelTest_massVaultMedia.test.js --workers=2 --headed
-          npx playwright test parallelTest_massMessage.test.js --workers=2 --headed
+          npx playwright test signup.spec.js --headed
+          npx playwright test signin.spec.js --headed
 
       - name: 📊 Generate Allure Report
         run: |
@@ -71,3 +71,4 @@ jobs:
 
       - name: 📁 List report files
         run: ls -la html-report
+
