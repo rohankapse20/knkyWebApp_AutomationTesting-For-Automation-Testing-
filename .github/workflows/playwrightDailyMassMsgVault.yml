@@ -1,4 +1,4 @@
-name: Playwright MassMessage & VaultMedia Tests with Allure Reports
+name: Playwright MassMessage & VaultMedia Parallel Tests with Allure Reports
 
 on:
   schedule:
