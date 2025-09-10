@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
-const fs = require('fs');
-const path = require('path');
+// const fs = require('fs');
+// const path = require('path');
 const { getTestData } = require('../utils/readExcel');
 const { BasePage } = require('../pages/BasePage');
 const { SigninPage } = require('../pages/SigninPage');
@@ -38,8 +38,7 @@ async function handleError(page, index, step, error) {
 // Parallel Test
 test.describe.parallel('Mass Vault Media Tests', () => {
 
-// Test Loop for Mass Vault Media Sending for Free to Fans
-// Free Vault Media Messages
+// Test for Mass Vault Media Sending for Free to Fans
 chatData.forEach((dataRow, index) => {
   test(`Mass Vault Media Send test #${index + 1} - ${dataRow.CreatorEmail}`, async ({ page }) => {
     test.setTimeout(240000);  //  Set timeout to 4 minutes
@@ -47,8 +46,6 @@ chatData.forEach((dataRow, index) => {
     const base = new BasePage(page);
     const signin = new SigninPage(page);
     const chat = new ChatPage(page);
-
-    // Removed random message generation and phrase handling
 
     // Login and Send Mass Message Process
     try {

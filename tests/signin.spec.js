@@ -10,7 +10,7 @@ const signinData = getTestData('./data/testData.xlsx', 'signin_data');
 
 test.use({
   //headless: true,
-   viewport: { width: 1600, height: 900 },
+   viewport: { width: 1400, height: 700 },
 });
 
 test.describe('Signin Tests', () => {

@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
-const fs = require('fs');
-const path = require('path');
-const { generateRandomMessage } = require('../utils/helpers');
+// const fs = require('fs');
+// const path = require('path');
+// const { generateRandomMessage } = require('../utils/helpers');
   
 const { getTestData } = require('../utils/readExcel');
 const { BasePage } = require('../pages/BasePage');
@@ -66,7 +66,7 @@ test.describe.parallel('Mass Message Send and Fan Verification Tests', () => {
         // Send mass message with hardcoded
         const sentMessage = await chat.sendMassMessageFromData({
           type: (dataRow.MessageType || '').toLowerCase(),
-          content: 'Hello All My Fans!',  // hardcoded message
+          content: 'Hello All My Fans and Subscribers!',  // hardcoded message
         });
         console.log(`Sent message: "${sentMessage}"`);
 
@@ -109,7 +109,7 @@ test.describe.parallel('Mass Message Send and Fan Verification Tests', () => {
     test(`Fan Message Verification Test #${index + 1} - ${fan.FanEmail}`, async ({ browser }) => {
       test.setTimeout(300_000); // 5 min timeout
 
-      const expectedMessage = 'Hello All My Fans!';  // Hardcoded expected message
+      const expectedMessage = 'Hello All My Fans and Subscribers!';  // Hardcoded expected message
       const normalizedExpected = expectedMessage.toLowerCase().replace(/\s+/g, ' ').trim();
 
       const context = await browser.newContext();

@@ -232,7 +232,7 @@ async sendMassMediaVault({ type }) {
       }
 
       // Select the vault media file (checkbox/radio)
-      const mediaInputLocator = this.page.locator("(//input[contains(@id, 'checkboxNoLabel')])[1]");
+      const mediaInputLocator = this.page.locator("(//input[contains(@id, 'checkboxNoLabel')])[5]");
 
       try {
         console.log("Waiting for media items to start loading...");
