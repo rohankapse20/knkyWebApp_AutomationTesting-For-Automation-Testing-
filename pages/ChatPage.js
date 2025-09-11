@@ -640,7 +640,6 @@ async CreatorChat_MassMedia(fanEmail) {
     return false;
   }
 }
-
 async receivedVaultMedia(fanEmail) {
   const fallbackEmail = 'rohan.kapse@iiclab.com';
   const safeEmail = (fanEmail || fallbackEmail).replace(/[@.]/g, '_');
@@ -717,7 +716,6 @@ async receivedVaultMedia(fanEmail) {
 
     // Handle "Got it!" button (non-blocking)
     const gotItButton = this.page.locator('button.swal2-confirm.swal2-styled:has-text("Got it!")');
-
     try {
       await gotItButton.waitFor({ state: 'visible', timeout: 3000 });
       await gotItButton.click({ timeout: 2000 });
@@ -749,7 +747,13 @@ async receivedVaultMedia(fanEmail) {
           console.log('Clicked "Got it!" button.');
         }
       } catch (error) {
-        console.warn(`Could not click "Got it!": ${error.message}`);
+        const isDetached = error.message.includes('detached from the DOM');
+        const isTimeout = error.message.includes('Timeout');
+        if (isDetached || isTimeout) {
+          console.warn('[WARN] "Got it!" button (2nd) disappeared before it could be clicked.');
+        } else {
+          console.warn(`Could not click "Got it!": ${error.message}`);
+        }
       }
 
       // Step 3: Wait for the confirmation modal to disappear
