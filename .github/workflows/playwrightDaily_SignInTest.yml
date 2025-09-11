@@ -4,10 +4,9 @@ on:
   schedule:
     # 4:10 AM IST = 11:40 PM UTC
     - cron: '40 23 * * *'
-    
     # 11:40 PM IST = 6:10 PM UTC
     - cron: '10 18 * * *'
-  workflow_dispatch: # Allow manual trigger
+  workflow_dispatch:
 
 jobs:
   test:
@@ -31,7 +30,6 @@ jobs:
       - name: 🎭 Install Playwright Browsers
         run: npx playwright install --with-deps
 
-      # Create .env BEFORE tests run
       - name: 🔐 Create .env file from GitHub Secrets
         run: |
           echo "BASE_URL=${{ secrets.BASE_URL }}" > .env
@@ -49,8 +47,8 @@ jobs:
           CI: true
         run: |
           npm run clean
-          npx playwright test signin.spec.js 
-          
+          npx playwright test signin.spec.js
+
       - name: 📊 Generate Allure Report
         run: |
           mkdir -p allure-report
@@ -63,11 +61,17 @@ jobs:
           path: allure-report
 
       - name: 📤 Upload Playwright HTML Report Artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: html-report
+          path: config_DataFiles/html-report
 
       - name: 📁 List report files
-        run: ls -la html-report
-
+        run: |
+          if [ -d config_DataFiles/html-report ]; then
+            echo "✅ Found Playwright HTML report"
+            ls -la config_DataFiles/html-report
+          else
+            echo "⚠️  Report folder not found at config_DataFiles/html-report"
+          fi
