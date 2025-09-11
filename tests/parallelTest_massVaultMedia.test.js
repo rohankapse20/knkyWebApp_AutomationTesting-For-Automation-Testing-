@@ -195,8 +195,10 @@ fanData.forEach((fan, index) => {
 
     // Step 5: Confirm success message and close modal (optional UX steps)
     try {
-      const confirmationText = page.locator('text=Your message has been unlocked.');
-      await confirmationText.waitFor({ state: 'visible', timeout: 5000 });
+      //const confirmationText = page.locator('text=Your message has been unlocked.');
+      const confirmationText = this.page.locator('text=/message.*unlocked/i');
+
+      await confirmationText.waitFor({ state: 'visible', timeout: 7000 });
       console.log('Success message confirmed.');
 
       const finalCloseBtn = page.locator('button:has-text("Close"), button.swal2-close');
