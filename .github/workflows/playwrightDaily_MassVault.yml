@@ -44,7 +44,7 @@ jobs:
           echo "USER3_EMAIL=${{ secrets.USER3_EMAIL }}" >> .env
           echo "USER3_PASSWORD=${{ secrets.USER3_PASSWORD }}" >> .env
 
-      - name: 🧪 Run massMessage and massVaultMedia tests only
+      - name: 🧪 Run massVaultMedia tests only
         env:
           CI: true
         run: |
