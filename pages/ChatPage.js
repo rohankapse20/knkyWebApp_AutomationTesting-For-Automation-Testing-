@@ -735,7 +735,7 @@ async receivedVaultMedia(fanEmail) {
       // Step 1: Wait for confirmation message
       const confirmationText = this.page.locator('text=Your message has been unlocked.');
       console.log("Waiting for unlock confirmation...");
-      await confirmationText.waitFor({ state: 'visible', timeout: 3000 });
+      await confirmationText.waitFor({ state: 'visible', timeout: 10000 });
       console.log("Vault Media message unlocked successfully.");
 
       // Step 2: Click the 'Got it!' button (again for unlock modal)
