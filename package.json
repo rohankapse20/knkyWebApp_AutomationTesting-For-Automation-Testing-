@@ -30,7 +30,6 @@
     "rimraf": "^6.0.1",
     "xlsx": "^0.18.5"
   },
-
   "scripts": {
     "clean": "rimraf test-results allure-report allure-results html-report",
     "test": "npm run clean && npx playwright test",

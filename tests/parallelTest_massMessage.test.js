@@ -39,7 +39,7 @@ async function handleError(page, index, step, error) {
 // Parallel Tests
 test.describe.parallel('Mass Message Send and Fan Verification Tests', () => {
 
-  chatData.forEach((dataRow, index) => {
+  chatData.forEach((dataRow,index) => {
     test(`Creator Mass Message Send Test #${index + 1} - ${dataRow.CreatorEmail}`, async ({ browser }) => {
       const context = await browser.newContext();
       const page = await context.newPage();
