@@ -67,13 +67,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: html-report
+          path: config_DataFiles/html-report
 
-      - name: 📁 List report files (safe)
+      - name: 📁 List report files
         run: |
-          if [ -d html-report ]; then
-            echo "✅ Found html-report"
-            ls -la html-report
+          if [ -d config_DataFiles/html-report ]; then
+            echo "✅ Found Playwright HTML report"
+            ls -la config_DataFiles/html-report
           else
-            echo "⚠️  html-report folder not found"
+            echo "⚠️  Report folder not found at config_DataFiles/html-report"
           fi
