@@ -1,10 +1,9 @@
 const { expect } = require('@playwright/test');
 const path = require('path');
-
-const { generateRandomMessage } = require('../utils/helpers.js');
 const { clickChatByCreatorName } = require('../utils/helpers.js');
-
 const { safeClick } = require('../utils/helpers.js');
+
+// const { generateRandomMessage } = require('../utils/helpers.js');
 
 
 class ChatPage {
@@ -141,12 +140,13 @@ async scrollToBottom() {
   });
 }
 
-  async getStartedMassOption()
+async getStartedMassOption()
   {
-    await this.getStartedMassChat.waitFor({ state: 'visible', timeout: 10000 });
+      await this.getStartedMassChat.waitFor({ state: 'visible', timeout: 10000 });
       console.log('Loaded Chat interface');
 
   }
+
   async handleOtpVerification() {
     const otpModal = this.page.locator("//div[contains(text(), 'Login Verification')]");
     const otpInput = this.page.locator("//input[@placeholder='Enter OTP code']");
@@ -715,6 +715,24 @@ async receivedVaultMedia(fanEmail) {
       }
     }
 
+    // Handle "Got it!" button (non-blocking)
+    const gotItButton = this.page.locator('button.swal2-confirm.swal2-styled:has-text("Got it!")');
+
+    try {
+      await gotItButton.waitFor({ state: 'visible', timeout: 3000 });
+      await gotItButton.click({ timeout: 2000 });
+      console.log('[INFO] "Got it!" button clicked successfully.');
+    } catch (error) {
+      const isDetached = error.message.includes('detached from the DOM');
+      const isTimeout = error.message.includes('Timeout');
+
+      if (isDetached || isTimeout) {
+        console.warn('[WARN] "Got it!" button disappeared before it could be clicked. Continuing test...');
+      } else {
+        throw error;
+      }
+    }
+
     try {
       // Step 1: Wait for confirmation message
       const confirmationText = this.page.locator('text=Your message has been unlocked.');
@@ -722,7 +740,7 @@ async receivedVaultMedia(fanEmail) {
       await confirmationText.waitFor({ state: 'visible', timeout: 3000 });
       console.log("Vault Media message unlocked successfully.");
 
-      // Step 2: Click the 'Got it!' button
+      // Step 2: Click the 'Got it!' button (again for unlock modal)
       const gotItBtn = this.page.locator('button.swal2-confirm.swal2-styled:has-text("Got it!")');
       try {
         await gotItBtn.waitFor({ state: 'visible', timeout: 1000 });
@@ -744,7 +762,7 @@ async receivedVaultMedia(fanEmail) {
 
       // Step 4: Wait for actual vault media preview (optional)
       try {
-        const vaultPreview = this.page.locator('selector-for-vault-preview'); // replace with real selector
+        const vaultPreview = this.page.locator('selector-for-vault-preview'); // Replace with real selector
         await expect(vaultPreview).toBeVisible({ timeout: 5000 });
         console.log("Vault preview confirmed.");
       } catch (previewError) {
@@ -753,14 +771,15 @@ async receivedVaultMedia(fanEmail) {
 
       console.log(`Vault media fully verified and previewed for fan: ${fanEmail}`);
 
-// Step 5: Close page
-  try {
-    await this.page.waitForTimeout(1500); 
-    await this.page.close();
-    console.log("Page closed after successful Vault Media interaction.");
-  } catch (closeError) {
-    console.warn("Could not close page:", closeError.message);
-  }
+      // Step 5: Close page
+      try {
+        await this.page.waitForTimeout(1500);
+        await this.page.close();
+        console.log("Page closed after successful Vault Media interaction.");
+      } catch (closeError) {
+        console.warn("Could not close page:", closeError.message);
+      }
+
       return true;
 
     } catch (error) {
