@@ -91,7 +91,7 @@ try {
   if (isEnabled) {
     console.error("Test Failed: Send button is enabled when no media is selected.");
     await page.screenshot({
-      path: `send_button_should_be_disabled_but_enabled_${index + 1}.png`,
+      path: `screenshots/send_button_should_be_disabled_but_enabled_${index + 1}.png`,
       fullPage: true
     });
     throw new Error("Send button should be disabled, but it was enabled.");
@@ -163,7 +163,7 @@ chatData.forEach((dataRow, index) => {
 
       if (isEnabled) {
         console.error("Test Failed: Send button is enabled without fans selected.");
-        await page.screenshot({ path: `send_button_unexpected_enabled_${index + 1}.png`, fullPage: true });
+        await page.screenshot({ path: `screenshots/send_button_unexpected_enabled_${index + 1}.png`, fullPage: true });
         throw new Error('Send button should be disabled, but it was enabled');
       } else {
         console.log("Test Passed: Send button is correctly disabled when no fans are selected.");

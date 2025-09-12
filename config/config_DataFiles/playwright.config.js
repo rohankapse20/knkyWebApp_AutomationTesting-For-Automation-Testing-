@@ -33,7 +33,7 @@ module.exports = defineConfig({
     ['allure-playwright']
   ],
 
-  // ✅ Global browser/test settings
+  // Global browser/test settings
   use: {
     headless: true,
     viewport: null,
