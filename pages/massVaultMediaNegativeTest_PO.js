@@ -1,7 +1,7 @@
 const { expect } = require('@playwright/test');
 const path = require('path');
 const { clickChatByCreatorName } = require('../utils/helpers.js');
-const { safeClick } = require('../utils/helpers.js');
+// const { safeClick } = require('../utils/helpers.js');
 
 class massVaultMediaNegativeTest_PO
 {
@@ -257,6 +257,179 @@ async notsendMassMediaVault({ type }) {
     await this.page.screenshot({ path: `error_send_mass_${type}_${Date.now()}.png`, fullPage: true });
     throw error;
   }
+}
+
+
+// Paid Media Vault Messages
+async sendMassMediaVault({ type }) {
+  try {
+    // Ensure 'Get Started' option is visible and clickable
+    const getStartedVisible = await this.getStartedMassChat.isVisible({ timeout: 15000 });
+    if (!getStartedVisible) {
+      await this.page.screenshot({ path: `error_get_started_not_visible_${type}.png`, fullPage: true });
+      throw new Error('Get Started option is not visible');
+    }
+
+    await this.getStartedMassChat.click();
+    console.log('Clicked Get Started');
+    await this.page.waitForTimeout(2000);
+
+    // Select "Media" radio button
+    const mediaRadioButton = this.page.locator('input#mediaRadio[type="radio"][value="Media"]');
+    try {
+      await mediaRadioButton.waitFor({ state: 'visible', timeout: 5000 });
+      await mediaRadioButton.check();
+      console.log('Checked Media radio button');
+      await this.page.waitForTimeout(3000);
+    } catch (error) {
+      await this.page.screenshot({ path: `error_media_radio_not_visible_${type}.png` });
+      throw new Error('Failed to check Media radio button');
+    }
+
+    // Click "Add Vault Media"
+    const addVaultMediaButton = this.page.locator('button:has(svg) >> text="Add Vault Media"');
+    try {
+      await addVaultMediaButton.waitFor({ state: 'visible', timeout: 5000 });
+      await addVaultMediaButton.click();
+      console.log('Clicked Add Vault Media button');
+    } catch (error) {
+      await this.page.screenshot({ path: `error_add_vault_media_button_${type}.png` });
+      throw new Error('Failed to click Add Vault Media button');
+    }
+
+    // Select vault media file (checkbox/radio)
+    const mediaInputLocator = this.page.locator("(//input[contains(@id, 'checkboxNoLabel')])[6]");
+
+    try {
+      console.log("Waiting for media items to start loading...");
+      await this.page.waitForTimeout(2500);
+
+      let isVisible = await mediaInputLocator.isVisible();
+      let scrollAttempts = 0;
+
+      while (!isVisible && scrollAttempts < 5) {
+        console.log(`Scrolling to find image [Attempt ${scrollAttempts + 1}]`);
+        await this.page.mouse.wheel(0, 300);
+        await this.page.waitForTimeout(2000);
+        isVisible = await mediaInputLocator.isVisible();
+        scrollAttempts++;
+      }
+
+      if (!isVisible) {
+        throw new Error('Media input checkbox is not visible after scrolling');
+      }
+
+      const isChecked = await mediaInputLocator.isChecked();
+      if (!isChecked) {
+        console.log("Clicking image checkbox...");
+        await this.page.waitForTimeout(1500);
+        await mediaInputLocator.click();
+        await this.page.waitForTimeout(1000);
+        console.log('Image checkbox selected successfully');
+      } else {
+        console.log('Image is already selected');
+      }
+
+      await this.page.waitForTimeout(1000);
+    } catch (error) {
+      await this.page.screenshot({ path: `error_select_media_${type}.png`, fullPage: true });
+      console.error('Error selecting media file:', error);
+      throw new Error('Failed to select media file');
+    }
+
+    // Click "Choose" button
+    const chooseButton = this.page.locator('button:has-text("Choose")');
+    try {
+      await chooseButton.waitFor({ state: 'visible', timeout: 5000 });
+      await chooseButton.click();
+      console.log('Clicked Choose button successfully');
+      await this.page.waitForTimeout(3000);
+    } catch (error) {
+      await this.page.screenshot({ path: `error_choose_button_${type}.png` });
+      console.error('Error clicking Choose button:', error.message);
+      throw new Error('Failed to click Choose button');
+    }
+
+    // Enable Pay-to-view and set price
+    const payToViewRadio = this.page.locator('input#payView[type="radio"][value="Pay-to-view"]');
+    const priceInputField = this.page.locator('input[placeholder="Enter price to pay"][type="number"]');
+
+    try {
+      const container = this.page.locator('.container.p-3.bg-white.rounded');
+      await container.evaluate(el => el.scrollTop = el.scrollHeight);
+      await this.page.waitForTimeout(2000);
+
+      await payToViewRadio.waitFor({ state: 'visible', timeout: 5000 });
+      await payToViewRadio.check();
+      console.log('Checked Pay-to-view radio button');
+      await this.page.waitForTimeout(3000);
+
+      await priceInputField.waitFor({ state: 'visible', timeout: 5000 });
+      await priceInputField.scrollIntoViewIfNeeded();
+      await this.page.waitForTimeout(2000);
+      await this.page.mouse.wheel(0, 700);
+      await this.page.waitForTimeout(500);
+
+      const isDisabled = await priceInputField.isDisabled();
+      if (isDisabled) {
+        throw new Error('Price input field is disabled');
+      }
+
+      await priceInputField.focus();
+      await priceInputField.fill('');
+      await priceInputField.type('20', { delay: 100 });
+      console.log('Entered price 10 into Pay-to-view input field');
+      await this.page.waitForTimeout(2000);
+    } catch (error) {
+      await this.page.screenshot({ path: `error_pay_to_view_setup_${type}.png`, fullPage: true });
+      throw new Error(`Failed to set Pay-to-view price: ${error.message}`);
+    }
+
+  } catch (finalError) {
+    console.error(`sendMassMediaVault failed: ${finalError.message}`);
+    throw finalError;
+  }
+}
+
+async selectSendDetails() {
+  const MAX_RETRIES = 3;
+  let attempt = 0;
+
+  while (attempt < MAX_RETRIES) {
+    try {
+      attempt++;
+      console.log(`Attempt ${attempt}: Locating correct Send button...`);
+      await this.page.waitForTimeout(1000);
+
+      const allButtons = this.page.locator('button:has-text("Send")');
+      const count = await allButtons.count();
+
+      console.log(`Found ${count} "Send" buttons. Evaluating visibility and enabled state...`);
+
+      for (let i = 0; i < count; i++) {
+        const button = allButtons.nth(i);
+        const isVisible = await button.isVisible();
+
+        if (isVisible) {
+          const isEnabled = await button.isEnabled();
+          console.log(`Send button #${i + 1} → Visible: ${isVisible}, Enabled: ${isEnabled}`);
+
+          await button.scrollIntoViewIfNeeded();
+          await expect(button).toBeVisible();
+
+          // Return the button for further evaluation in test
+          return button;
+        }
+      }
+
+      console.warn("No visible Send button found yet, retrying...");
+    } catch (error) {
+      console.error(`Error during attempt ${attempt} of locating Send button: ${error.message}`);
+    }
+  }
+
+  console.warn("Returning undefined. No visible Send button found after retries.");
+  return null;
 }
 
 
