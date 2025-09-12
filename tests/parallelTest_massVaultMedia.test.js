@@ -143,6 +143,8 @@ try {
   });
 });
 
+
+
 // Fan verify the vault media message 
 fanData.forEach((fan, index) => {
   test(`Verify Vault Media message visible to Fans after paying the money #${index + 1} - ${fan.FanEmail}`, async ({ browser }) => {
@@ -246,5 +248,8 @@ fanData.forEach((fan, index) => {
     }
 
   });
+
+
 });
 });
+
