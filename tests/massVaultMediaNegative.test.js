@@ -72,7 +72,7 @@ test.describe('Negative Test for vault media feature', () => {
 
       try {
         await massVaultMediaNegativeTest.notsendMassMediaVault({
-          type: messageType,
+        type: messageType,
         });
         await page.waitForTimeout(1500);
         console.log('Tried to send mass message without selecting vault/media.');

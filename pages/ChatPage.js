@@ -18,16 +18,15 @@ class ChatPage {
     this.addVaultMediaBtn = page.locator("//button[contains(., 'Add Vault Media')]");
     this.chooseButton = page.locator("//button[normalize-space(text())='Choose']");
     this.followersCheckbox = page.locator("//input[@id='followers']");
-
-
     this.testVersAccept = page.locator("[data-eid='Home_WithoutLoggedIn/Testversion_btn']");
     this.chatoption = page.locator("//img[contains(@src, 'chat') and @width='28']");
     this.welcomeMessage = page.locator("text=Welcome");
-  
     this.successPopup = this.page.locator("//h2[normalize-space()='Message sent successfully']");
     this.successCloseButton = this.page.locator("//button[contains(@class, 'swal2-confirm') and normalize-space(text())='Close']");
     
   }
+
+// Created the methods
 
 async navigateToChat() {
   try {
