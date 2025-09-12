@@ -7,6 +7,7 @@ const { getTestData } = require('../utils/readExcel');
 const { BasePage } = require('../pages/BasePage');
 const { SigninPage } = require('../pages/SigninPage');
 const { ChatPage } = require('../pages/ChatPage');
+const {takeScreenshot} = require('../utils/helpers')
 
 require('dotenv').config({ path: './.env' });
 
@@ -84,8 +85,7 @@ test.describe.parallel('Mass Message Send and Fan Verification Tests', () => {
         await page.waitForTimeout(5000);
         const isStillVisible = await chat.successPopup?.isVisible({ timeout: 2000 }).catch(() => false);
         if (isStillVisible) {
-          const screenshotPath = `screenshots/error_popup_still_visible_${Date.now()}.png`;
-          await page.screenshot({ path: screenshotPath, fullPage: true });
+          await takeScreenshot(page, `error_popup_still_visible__${index + 1}`);
           throw new Error(`Success popup still visible after close. Screenshot: ${screenshotPath}`);
         }
 
@@ -166,8 +166,7 @@ test.describe.parallel('Mass Message Send and Fan Verification Tests', () => {
         }
 
         if (!matched) {
-          const screenshotPath = `screenshots/message_not_visible_${Date.now()}.png`;
-          await page.screenshot({ path: screenshotPath, fullPage: true });
+          await takeScreenshot(page, `message_not_visible_${index + 1}`);
           throw new Error(`Failed to verify message for fan ${fan.FanEmail} after ${maxRetries} attempts.\nScreenshot: ${screenshotPath}`);
         }
 

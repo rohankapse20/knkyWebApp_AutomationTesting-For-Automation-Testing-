@@ -3,6 +3,7 @@ const { getTestData } = require('../utils/readExcel');
 const { BasePage } = require('../pages/BasePage');
 const { SigninPage } = require('../pages/SigninPage');
 const { massVaultMediaNegativeTest_PO } = require('../pages/massVaultMediaNegativeTest_PO');
+const {takeScreenshot} = require('../utils/helpers')
 
 require('dotenv').config({ path: './.env' });
 
@@ -90,10 +91,7 @@ try {
 
   if (isEnabled) {
     console.error("Test Failed: Send button is enabled when no media is selected.");
-    await page.screenshot({
-      path: `screenshots/send_button_should_be_disabled_but_enabled_${index + 1}.png`,
-      fullPage: true
-    });
+    await takeScreenshot(page, `send_button_should_be_disabled_but_enabled__${index + 1}`);
     throw new Error("Send button should be disabled, but it was enabled.");
   } else {
     console.log("Test Passed: Send button is disabled when no media is selected.");
@@ -102,8 +100,9 @@ try {
 } catch (error) {
   await handleError(page, index, 'Send button disabled check', error);
 }
-    });
-  });
+
+   });
+});
 
 // Creator tries to send with no fans selected
 chatData.forEach((dataRow, index) => {
@@ -163,9 +162,10 @@ chatData.forEach((dataRow, index) => {
 
       if (isEnabled) {
         console.error("Test Failed: Send button is enabled without fans selected.");
-        await page.screenshot({ path: `screenshots/send_button_unexpected_enabled_${index + 1}.png`, fullPage: true });
+        await takeScreenshot(page, `send_button_unexpected_enabled_${index + 1}`);
         throw new Error('Send button should be disabled, but it was enabled');
       } else {
+       // await takeScreenshot(page, `send_button_is_disabled_${index + 1}`);
         console.log("Test Passed: Send button is correctly disabled when no fans are selected.");
       }
 
@@ -173,7 +173,7 @@ chatData.forEach((dataRow, index) => {
       await handleError(page, index, 'Send button disabled check', error);
     }
 
-  });
-});
+   });   
 
+});
 });
