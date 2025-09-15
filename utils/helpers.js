@@ -1,5 +1,8 @@
-const fs = require('fs');
-const path = require('path');
+// const fs = require('fs');
+// const path = require('path');
+
+import fs from 'fs';
+import path from 'path';
 
 
 // Generate a random phrase from predefined options
@@ -76,6 +79,49 @@ function generateRandomMessage() {
   return `${creatorMessage}`;
 }
 console.log(generateRandomMessage());
+
+
+// write only if fan doesn't already exist in the file.
+const fs = require('fs');
+const path = require('path');
+
+const filePath = path.resolve(__dirname, 'sentMessages.json');
+
+function ensureStoreFile() {
+  if (!fs.existsSync(filePath)) {
+    fs.writeFileSync(filePath, '{}', 'utf-8');
+  }
+}
+
+function readMessageStore() {
+  ensureStoreFile();
+  const raw = fs.readFileSync(filePath, 'utf-8');
+  return JSON.parse(raw);
+}
+
+function writeMessageForFan(fanEmail, message) {
+  ensureStoreFile();
+  const data = readMessageStore();
+
+  if (!data[fanEmail]) {
+    data[fanEmail] = message;
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    console.log(`Stored message for fan: ${fanEmail}`);
+  } else {
+    console.log(`Message already exists for fan: ${fanEmail}, skipping write.`);
+  }
+}
+
+function getMessageForFan(fanEmail) {
+  const data = readMessageStore();
+  return data[fanEmail] || null;
+}
+
+module.exports = {
+  writeMessageForFan,
+  getMessageForFan
+};
+
 
 // Fill input field after waiting for it to be visible
 async function fillInput(page, selector, value) {

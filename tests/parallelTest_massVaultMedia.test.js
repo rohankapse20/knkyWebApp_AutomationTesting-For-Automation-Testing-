@@ -5,6 +5,7 @@ const { getTestData } = require('../utils/readExcel');
 const { BasePage } = require('../pages/BasePage');
 const { SigninPage } = require('../pages/SigninPage');
 const { ChatPage } = require('../pages/ChatPage');
+const {takeScreenshot} = require('../utils/helpers')
 
 require('dotenv').config({ path: './.env' });
 
@@ -102,10 +103,9 @@ try {
   await chat.waitForSuccessPopup({ timeout: 15000 });
   console.log('Success popup appeared.');
 } catch (error) {
-  const path = `screenshots/error_success_popup_not_visible_${Date.now()}.png`;
-  await page.screenshot({ path, fullPage: true });
+  await takeScreenshot(page, `error_success_popup_not_visible_${index + 1}`);
   console.error('Success popup did not appear.');
-  throw new Error(`Step 3 - Success popup not visible. Screenshot: ${path}`);
+  throw new Error(`Success popup not visible. Screenshot: ${path}`);
 }
 
 // Step 3 - Close the success popup
@@ -115,8 +115,7 @@ try {
   await page.waitForTimeout(10000); // Wait after 10 Seconds closing
   console.log('Success popup closed.');
 } catch (error) {
-  const path = `screenshots/error_closing_popup_${Date.now()}.png`;
-  await page.screenshot({ path, fullPage: true });
+  await takeScreenshot(page, `error_closing_popup_${index + 1}`);
   throw new Error(`Step 4 - Failed to close success popup. Screenshot: ${path}`);
 }
 
@@ -135,13 +134,15 @@ try {
   expect(true).toBeTruthy(); // Pass the test
 
 } catch (error) {
-  const path = `screenshots/error_checking_popup_visibility_${Date.now()}.png`;
-  await page.screenshot({ path, fullPage: true });
+
+  await takeScreenshot(page, `error_checking_popup_visibility_${index + 1}`);
   throw new Error(`Step 4 - Error verifying popup visibility. Screenshot: ${path}`);
   }
 
   });
 });
+
+
 
 // Fan verify the vault media message 
 fanData.forEach((fan, index) => {
@@ -246,5 +247,8 @@ fanData.forEach((fan, index) => {
     }
 
   });
+
+
 });
 });
+

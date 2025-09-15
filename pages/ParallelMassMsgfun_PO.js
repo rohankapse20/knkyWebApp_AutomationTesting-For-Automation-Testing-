@@ -3,10 +3,11 @@ const path = require('path');
 const { clickChatByCreatorName } = require('../utils/helpers.js');
 const { safeClick } = require('../utils/helpers.js');
 
+
 // const { generateRandomMessage } = require('../utils/helpers.js');
 
 
-class ChatPage {
+class ParallelMassMsgfun_PO {
   constructor(page) {
     this.page = page;
 
@@ -169,9 +170,8 @@ async getStartedMassOption()
 
     await this.page.waitForTimeout(2000);
   }
-
-async sendMassMessageFromData({ type, content }) {
-  const messageToSend = content || 'Hello everyone!'; // default fallback
+async sendMassMessageFromData({ type, content, creatorEmail }) {
+  const messageToSend = content || 'Hello everyone!';
 
   try {
     if (await this.getStartedMassChat.isVisible({ timeout: 15000 })) {
@@ -186,6 +186,29 @@ async sendMassMessageFromData({ type, content }) {
 
       await this.messageText.fill(messageToSend);
       console.log('Filled message text:', messageToSend);
+
+      // === Store sent message to JSON ===
+      const fs = require('fs');
+      const path = require('path');
+      const filePath = path.resolve(__dirname, '../../test-data/sentMessages.json');
+
+      let sentMessages = {};
+      if (fs.existsSync(filePath)) {
+        try {
+          sentMessages = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+        } catch (e) {
+          console.warn('Could not parse existing sentMessages.json. Creating a new one.');
+        }
+      }
+
+      sentMessages[creatorEmail] = {
+        message: messageToSend,
+        type: type,
+        timestamp: new Date().toISOString()
+      };
+
+      fs.writeFileSync(filePath, JSON.stringify(sentMessages, null, 2));
+      console.log(`Saved sent message for ${creatorEmail}`);
 
       return messageToSend;
     }
@@ -834,4 +857,4 @@ async waitForSuccessPopup() {
 
 }
 
-module.exports = { ChatPage };
+module.exports = { ParallelMassMsgfun_PO };
