@@ -376,7 +376,7 @@ async sendMassMediaVault({ type }) {
       await priceInputField.focus();
       await priceInputField.fill('');
       await priceInputField.type('20', { delay: 100 });
-      console.log('Entered price 10 into Pay-to-view input field');
+      console.log('Entered price 20 into Pay-to-view input field');
       await this.page.waitForTimeout(2000);
     } catch (error) {
       await this.page.screenshot({ path: `error_pay_to_view_setup_${type}.png`, fullPage: true });
