@@ -1,8 +1,5 @@
-// const fs = require('fs');
-// const path = require('path');
-
-import fs from 'fs';
-import path from 'path';
+const fs = require('fs');
+const path = require('path');
 
 
 // Generate a random phrase from predefined options
@@ -25,11 +22,38 @@ function generateDynamicMessage() {
     "New update from me.",
     "Stay tuned!",
     "Good morning, folks!",
-    "Big surprise coming!"
+    "Big surprise coming!",
+    "Hey I Like You",
+    "I am coming live in some time !!!",
+    "I have share the story ! Just now Check It..."  
   ];
   const random = phrases[Math.floor(Math.random() * phrases.length)];
   return `${random} [${Date.now()}]`; // Ensures uniqueness
 }
+
+
+const messagesFilePath = path.resolve(__dirname, '../test-data/sentMessages.json');
+
+const waitForFileUpdate = async (creatorEmail, previousMessage = '', maxRetries = 20, delay = 3000) => {
+  if (!fs.existsSync(messagesFilePath)) {
+    console.log(`Creating missing file at ${messagesFilePath}`);
+    fs.writeFileSync(messagesFilePath, '{}', 'utf-8'); // create empty JSON object
+  }
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const messages = JSON.parse(fs.readFileSync(messagesFilePath, 'utf-8'));
+    const current = messages[creatorEmail];
+
+    if (current?.message && current.message !== previousMessage) {
+      return current.message;
+    }
+
+    console.log(`[waitForFileUpdate] ⏳ Attempt ${attempt}: Message not updated yet, retrying...`);
+    await new Promise((resolve) => setTimeout(resolve, delay));
+  }
+
+  throw new Error(`Timed out waiting for updated message for ${creatorEmail}`);
+};
 
 
 
@@ -79,11 +103,6 @@ function generateRandomMessage() {
   return `${creatorMessage}`;
 }
 console.log(generateRandomMessage());
-
-
-// write only if fan doesn't already exist in the file.
-const fs = require('fs');
-const path = require('path');
 
 const filePath = path.resolve(__dirname, 'sentMessages.json');
 

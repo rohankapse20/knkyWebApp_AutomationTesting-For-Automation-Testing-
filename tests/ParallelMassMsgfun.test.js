@@ -1,19 +1,25 @@
-import { test, expect } from '@playwright/test';
-import fs from 'fs';
+import { waitForFileUpdate } from '../utils/fileUtils';
 import path from 'path';
-import 'dotenv/config'; // loads .env automatically
+import fs from 'fs';
 
-import { generateRandomMessage, takeScreenshot } from '../utils/helpers.js';
-import { getTestData } from '../utils/readExcel.js';
-import { BasePage } from '../pages/BasePage.js';
-import { SigninPage } from '../pages/SigninPage.js';
-import { ParallelMassMsgfun_PO } from '../pages/ParallelMassMsgfun_PO.js';
+const { test, expect } = require('@playwright/test');
+const { generateDynamicMessage } = require('../utils/helpers');
+const defaultCreatorEmail = 'rohankapse520@gmail.com';
+const messagesFilePath = path.resolve(__dirname, '../../test-data/sentMessages.json');
+  
+const { getTestData } = require('../utils/readExcel');
+const { BasePage } = require('../pages/BasePage');
+const { SigninPage } = require('../pages/SigninPage');
+const { ParallelMassMsgfun_PO} = require('../pages/ParallelMassMsgfun_PO');
+const {takeScreenshot} = require('../utils/helpers')
+
+require('dotenv').config({ path: './.env' });
 
 // Environment Validation
 const BASE_URL = process.env.BASE_URL;
 const CREATOR_EMAIL = process.env.CREATOR_EMAIL;
 if (!BASE_URL || !CREATOR_EMAIL) {
-  throw new Error('Missing required environment variables: BASE_URL or CREATOR_EMAIL');
+  throw new Error("Missing required environment variables: BASE_URL or CREATOR_EMAIL");
 }
 
 // Excel Test Data
@@ -37,9 +43,8 @@ async function handleError(page, index, step, error) {
 
 // Parallel Tests
 test.describe.parallel('Mass Message Send and Fan Verification Tests', () => {
-  
-  // Creator Mass Message Send Tests
-  chatData.forEach((dataRow, index) => {
+
+  chatData.forEach((dataRow,index) => {
     test(`Creator Mass Message Send Test #${index + 1} - ${dataRow.CreatorEmail}`, async ({ browser }) => {
       const context = await browser.newContext();
       const page = await context.newPage();
@@ -63,16 +68,16 @@ test.describe.parallel('Mass Message Send and Fan Verification Tests', () => {
         await msgfun.getStartedMassOption();
         console.log('Navigated to msgfun and selected mass message option.');
 
-        // Main test execution
-        const dynamicMessage = generateRandomMessage();
+        // Import or define generateDynamicMessage
+        const dynamicMessage = generateDynamicMessage();
 
         const sentMessage = await msgfun.sendMassMessageFromData({
-          type: (dataRow.MessageType || '').toLowerCase(),
-          content: dynamicMessage,  // dynamically generated message
-          creatorEmail: dataRow.CreatorEmail // for saving message if needed
+        type: (dataRow.MessageType || '').toLowerCase(),
+        content: dynamicMessage,
+        creatorEmail: dataRow.CreatorEmail  // make sure this is set correctly
         });
 
-        console.log(`Sent message: "${sentMessage}"`);
+        console.log(`Sent dynamic message: "${sentMessage}"`);
 
         await msgfun.followersActiveSubCheckbox();
         await page.waitForTimeout(1500);
@@ -89,7 +94,7 @@ test.describe.parallel('Mass Message Send and Fan Verification Tests', () => {
         const isStillVisible = await msgfun.successPopup?.isVisible({ timeout: 2000 }).catch(() => false);
         if (isStillVisible) {
           await takeScreenshot(page, `error_popup_still_visible__${index + 1}`);
-          throw new Error('Success popup still visible after close.');
+          throw new Error(`Success popup still visible after close. Screenshot: ${screenshotPath}`);
         }
 
         console.log(`Mass message sent successfully by ${dataRow.CreatorEmail}`);
@@ -105,93 +110,98 @@ test.describe.parallel('Mass Message Send and Fan Verification Tests', () => {
     });
   });
 
-  // Fan Message Verification Tests
-  fanData.forEach((fan, index) => {
-    test(`Fan Message Verification Test #${index + 1} - ${fan.FanEmail}`, async ({ browser }) => {
-      test.setTimeout(300_000); // 5 min timeout
 
-      // Load expected message from sentMessages.json based on the fan's linked creator
-      const sentMessagesPath = path.resolve(__dirname, '../../test-data/sentMessages.json');
-      if (!fs.existsSync(sentMessagesPath)) {
-        throw new Error(`sentMessages.json file not found at path: ${sentMessagesPath}`);
-      }
+// Begin fan tests
+fanData.forEach((fan, index) => {
+  test(`Fan Message Verification Test #${index + 1} - ${fan.FanEmail}`, async ({ browser }) => {
+    test.setTimeout(300_000); // 5 minutes timeout
 
-      const sentMessages = JSON.parse(fs.readFileSync(sentMessagesPath, 'utf-8'));
-      const creatorEmail = fan.CreatorEmail;
+    const context = await browser.newContext();
+    const page = await context.newPage();
 
-      if (!sentMessages[creatorEmail]) {
-        throw new Error(`No message found for creator: ${creatorEmail} in sentMessages.json`);
-      }
+    const base = new BasePage(page);
+    const signin = new SigninPage(page);
+    const msgfun = new ParallelMassMsgfun_PO(page);
 
-      const expectedMessage = sentMessages[creatorEmail].message;
-      const normalizedExpected = expectedMessage.toLowerCase().replace(/\s+/g, ' ').trim();
+    const testId = `FanTest#${index + 1}-${fan.FanEmail}`;
+    const creatorEmail = (fan.CreatorEmail || defaultCreatorEmail).trim().toLowerCase();
 
-      const context = await browser.newContext();
-      const page = await context.newPage();
+    try {
+      // Step 1: Get previously known message
+      const previousMessage = fs.existsSync(messagesFilePath)
+        ? JSON.parse(fs.readFileSync(messagesFilePath, 'utf-8'))?.[creatorEmail]?.message ?? ''
+        : '';
 
-      const base = new BasePage(page);
-      const signin = new SigninPage(page);
-      const msgfun = new ParallelMassMsgfun_PO(page);
+      // Step 2: Wait for creator to send new message
+      console.log(`[${testId}] ⏳ Waiting 10 seconds to allow creator to send message...`);
+      await new Promise((resolve) => setTimeout(resolve, 10_000));
 
-      try {
-        await base.navigate();
-        await signin.goToSignin();
-        await signin.fillSigninForm(fan.FanEmail, fan.FanPassword);
-        await signin.signinSubmit();
-        await msgfun.handleOtpVerification();
+      // Step 3: Wait for message to update
+      console.log(`[${testId}] ⏳ Checking for updated message from ${creatorEmail}...`);
+      const latestMessage = await waitForFileUpdate(creatorEmail, previousMessage, 20, 3000);
+      console.log(`[${testId}] ✅ Latest message found: "${latestMessage}"`);
 
-        const welcomePopup = page.locator('text=Welcome Back,');
-        await expect(welcomePopup).toBeVisible({ timeout: 20000 });
-        console.log(`Logged in as Fan: ${fan.FanEmail}`);
+      // Step 4: Login as fan
+      await base.navigate();
+      await signin.goToSignin();
+      await signin.fillSigninForm(fan.FanEmail, fan.FanPassword);
+      await signin.signinSubmit();
+      await msgfun.handleOtpVerification();
 
-        await msgfun.navigateToChat();
-        await msgfun.chatWithCreator();
+      const welcomePopup = page.locator('text=Welcome Back,');
+      await expect(welcomePopup).toBeVisible({ timeout: 20000 });
+      console.log(`[${testId}] ✅ Logged in as fan`);
 
-        let rawText = '';
-        let matched = false;
+      // Step 5: Navigate to chat
+      await msgfun.navigateToChat();
+      await msgfun.chatWithCreator();
 
-        const maxRetries = 10;
-        const retryDelay = 3000;
+      // Step 6: Try matching the received message
+      let matched = false;
+      const maxRetries = 10;
+      const retryDelay = 3000;
 
-        for (let attempt = 1; attempt <= maxRetries; attempt++) {
-          try {
-            console.log(`Attempt ${attempt}: Checking for message...`);
-            rawText = await msgfun.getLastReceivedMsgFromCreator(expectedMessage);
-
-            const normalizedReceived = rawText.toLowerCase().replace(/\s+/g, ' ').trim();
-
-            if (normalizedReceived === normalizedExpected) {
-              console.log(`Message matched on attempt ${attempt}.\nExpected: "${normalizedExpected}"\nReceived: "${normalizedReceived}"`);
-              matched = true;
-              break;
-            } else {
-              console.warn(`Message mismatch on attempt ${attempt}.\nExpected: "${normalizedExpected}"\nReceived: "${normalizedReceived}"`);
-            }
-          } catch (err) {
-            console.warn(`Attempt ${attempt} failed: ${err.message}`);
-          }
-
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          console.log(`[${testId}] 🔄 Attempt ${attempt}: Checking message from creator`);
+          await msgfun.getLastReceivedMsgFromCreator(latestMessage, testId);
+          matched = true;
+          break;
+        } catch (err) {
+          console.warn(`[${testId}] ⚠️ Attempt ${attempt} failed: ${err.message}`);
           if (attempt < maxRetries) {
-            console.log(`Retrying after ${retryDelay}ms...`);
             await page.waitForTimeout(retryDelay);
           }
         }
+      }
 
-        if (!matched) {
-          await takeScreenshot(page, `message_not_visible_${index + 1}`);
-          throw new Error(`Failed to verify message for fan ${fan.FanEmail} after ${maxRetries} attempts.`);
-        }
+      // Step 7: If not matched, capture screenshot
+      if (!matched) {
+        const screenshotDir = path.resolve(__dirname, '../../screenshots');
+        if (!fs.existsSync(screenshotDir)) fs.mkdirSync(screenshotDir);
 
-        console.log(`Message verified successfully for fan: ${fan.FanEmail}`);
+        const safeEmail = creatorEmail.replace(/[@.]/g, '_');
+        const screenshotName = `message_not_matched_${safeEmail}_${Date.now()}.png`;
+        await page.screenshot({ path: path.join(screenshotDir, screenshotName), fullPage: true });
 
-      } catch (error) {
-        console.error(`Test failed for fan ${fan.FanEmail}: ${error.message}`);
-        throw error;
-      } finally {
+        throw new Error(`[${testId}] ❌ Message mismatch. Screenshot saved: ${screenshotName}`);
+      }
+
+      console.log(`[${testId}] ✅ Message verified successfully`);
+
+    } catch (error) {
+      console.error(`[${testId}] ❌ Test failed: ${error.message}`);
+      throw error;
+    } finally {
+      try {
         await page.waitForTimeout(3000);
         await page.close();
         await context.close();
+      } catch (finalError) {
+        console.warn(`[${testId}] ⚠️ Error during cleanup: ${finalError.message}`);
       }
-    });
+    }
   });
+
+});
 });

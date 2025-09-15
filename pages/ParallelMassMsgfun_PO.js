@@ -170,6 +170,7 @@ async getStartedMassOption()
 
     await this.page.waitForTimeout(2000);
   }
+
 async sendMassMessageFromData({ type, content, creatorEmail }) {
   const messageToSend = content || 'Hello everyone!';
 
@@ -190,7 +191,15 @@ async sendMassMessageFromData({ type, content, creatorEmail }) {
       // === Store sent message to JSON ===
       const fs = require('fs');
       const path = require('path');
-      const filePath = path.resolve(__dirname, '../../test-data/sentMessages.json');
+
+      const dirPath = path.resolve(__dirname, '../../test-data');
+      const filePath = path.join(dirPath, 'sentMessages.json');
+
+      // Ensure the test-data directory exists
+      if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath, { recursive: true });
+        console.log(`Created directory: ${dirPath}`);
+      }
 
       let sentMessages = {};
       if (fs.existsSync(filePath)) {
@@ -506,31 +515,25 @@ async selectSendDetails() {
     }
   }
 
-async getLastReceivedMsgFromCreator(expectedMessage) {
+async getLastReceivedMsgFromCreator(expectedMessage, testId = 'UnknownTest') {
   const maxRetries = 3;
   let lastError = null;
-  let rawText = '';
 
   const normalize = (text) => text.replace(/\s+/g, ' ').trim().toLowerCase();
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`\nAttempt ${attempt} to verify received message...`);
+      console.log(`[${testId}] Attempt ${attempt} to verify message...`);
 
-      // Step 1: Wait a bit for message to arrive
       await this.page.waitForTimeout(5000);
 
-      // Step 2: Scroll chat container to bottom to ensure latest message is visible
       await this.page.evaluate(() => {
         const chatContainer = document.querySelector('div.bg-chat-receiver');
-        if (chatContainer) {
-          chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
+        if (chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight;
       });
 
-      await this.page.waitForTimeout(2000); // Wait for scroll/render
+      await this.page.waitForTimeout(2000);
 
-      // Step 3: Make messages fully visible (remove overflow restrictions)
       await this.page.evaluate(() => {
         const messages = Array.from(document.querySelectorAll('div.bg-chat-receiver div.px-2.pt-1'));
         messages.forEach(msg => {
@@ -540,23 +543,20 @@ async getLastReceivedMsgFromCreator(expectedMessage) {
         });
       });
 
-      // Step 4: Get the last (most recent) message in chat
       const messageLocator = this.page.locator('div.bg-chat-receiver div.px-2.pt-1').last();
-      await messageLocator.waitFor({ timeout: 5000 }); // Slightly longer timeout
+      await messageLocator.waitFor({ timeout: 5000 });
 
-      rawText = await messageLocator.innerText();
-
-      // Normalize received and expected messages for reliable comparison
+      const rawText = await messageLocator.innerText();
       const normalizedReceived = normalize(rawText);
       const normalizedExpected = normalize(expectedMessage);
 
-      console.log(`Comparing messages:\nReceived: "${normalizedReceived}"\nExpected: "${normalizedExpected}"`);
+      console.log(`[${testId}] Comparing messages:\nExpected: "${normalizedExpected}"\nReceived: "${normalizedReceived}"`);
 
       if (normalizedReceived !== normalizedExpected) {
         throw new Error('Last received message does not match expected.');
       }
 
-      // Step 5: Highlight matched message in UI
+      // Highlight the matched message
       const highlighted = await this.page.evaluate((expectedText) => {
         const normalize = (text) => text.replace(/\s+/g, ' ').trim().toLowerCase();
         const messages = Array.from(document.querySelectorAll('div.bg-chat-receiver div.px-2.pt-1'));
@@ -574,33 +574,34 @@ async getLastReceivedMsgFromCreator(expectedMessage) {
       }, expectedMessage);
 
       if (highlighted) {
-        console.log(`Message matched and highlighted after attempt #${attempt}`);
+        console.log(`[${testId}] ✅ Message matched and highlighted`);
       } else {
-        console.warn('Message matched but could not be highlighted in DOM.');
+        console.warn(`[${testId}] ⚠️ Message matched but not highlighted`);
       }
 
-      return rawText; // Success: return the actual text received
+      return rawText;
 
     } catch (err) {
       lastError = err;
-      console.warn(`Attempt ${attempt} failed: ${err.message}`);
+      console.warn(`[${testId}] ⚠️ Attempt ${attempt} failed: ${err.message}`);
 
       if (attempt < maxRetries) {
-        console.log('Retrying after short delay...\n');
         await this.page.waitForTimeout(3000);
       } else {
-        try {
-          const screenshotPath = `screenshots/final_fail_msg_not_found_${Date.now()}.png`;
-          await this.page.screenshot({ path: screenshotPath, fullPage: true });
-          console.error(`Final attempt failed. Screenshot saved: ${screenshotPath}`);
-        } catch (screenshotErr) {
-          console.error(`Failed to take screenshot: ${screenshotErr.message}`);
-        }
+        const screenshotDir = path.resolve(__dirname, '../../screenshots');
+        if (!fs.existsSync(screenshotDir)) fs.mkdirSync(screenshotDir);
+
+        const screenshotPath = path.join(screenshotDir, `msg_not_found_${testId}_${Date.now()}.png`);
+        await this.page.screenshot({ path: screenshotPath, fullPage: true });
+
+        console.error(`[${testId}] ❌ Final attempt failed. Screenshot: ${screenshotPath}`);
         throw new Error(`Failed to verify recent message after ${maxRetries} attempts.\nReason: ${lastError.message}`);
       }
     }
   }
 }
+
+
 
 async CreatorChat_MassMedia(fanEmail) {
   const fallbackEmail = 'rohan.kapse@iiclab.com';
