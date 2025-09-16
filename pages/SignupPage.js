@@ -13,25 +13,29 @@ class SignupPage {
     // Modal button (age confirmation)
     this.ageConfirmBtn = page.locator('#age-wraning-close-button');
     this.modal = page.locator('#signUpModal');
+
+    // Error message locators
+    this.emailError = page.locator('div.error[data-sentry-element="ErrorMessage"]', { hasText: 'Email' });
+    this.passwordError = page.locator('div.error[data-sentry-element="ErrorMessage"]', { hasText: 'Password' });
+    this.invalidEmailError = page.locator('div.error[data-sentry-element="ErrorMessage"]', { hasText: 'Invalid email' });
+    this.passwordUpperError = page.locator('div.error[data-sentry-element="ErrorMessage"]', { hasText: 'Password must contain at least one uppercase character' });
+    this.createAccountButton = page.locator('button[data-eid="SignUp/Create_account_button"]');
+    this.emailAlreadyUsedPopup = page.locator('.swal2-popup.swal2-error h2#swal2-title', { hasText: 'Email already in use' });
   }
 
   // Created methods()
 
   async goToSignup() {
-  
-    // Wait and click signup button
     console.log('Waiting for signup button...');
     await this.signupBtn.waitFor({ state: 'visible', timeout: 10000 });
     await this.signupBtn.click();
     console.log('Signup button clicked.');
-    
-    // Wait and click signup link
+
     console.log('Waiting for signup link...');
     await this.signuplink.waitFor({ state: 'visible', timeout: 10000 });
     await this.signuplink.click();
     console.log('Signup link clicked.');
 
-    // Wait for email field
     console.log('Waiting for email field...');
     await this.emailField.waitFor({ state: 'visible', timeout: 10000 });
     console.log('Email field is visible.');
