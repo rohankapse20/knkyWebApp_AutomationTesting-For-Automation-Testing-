@@ -1,11 +1,8 @@
 const { expect } = require('@playwright/test');
 const path = require('path');
-const { clickChatByCreatorName } = require('../utils/helpers.js');
-const { safeClick } = require('../utils/helpers.js');
-
-
-// const { generateRandomMessage } = require('../utils/helpers.js');
-
+const { clickChatByCreatorName } = require('../utils/helpers');
+const { safeClick } = require('../utils/helpers');
+const { writeSentMessageSafely } = require('../utils/fileUtils');
 
 class ParallelMassMsgfun_PO {
   constructor(page) {
@@ -171,6 +168,7 @@ async getStartedMassOption()
     await this.page.waitForTimeout(2000);
   }
 
+
 async sendMassMessageFromData({ type, content, creatorEmail }) {
   const messageToSend = content || 'Hello everyone!';
 
@@ -188,36 +186,12 @@ async sendMassMessageFromData({ type, content, creatorEmail }) {
       await this.messageText.fill(messageToSend);
       console.log('Filled message text:', messageToSend);
 
-      // === Store sent message to JSON ===
-      const fs = require('fs');
-      const path = require('path');
-
-      const dirPath = path.resolve(__dirname, '../../test-data');
-      const filePath = path.join(dirPath, 'sentMessages.json');
-
-      // Ensure the test-data directory exists
-      if (!fs.existsSync(dirPath)) {
-        fs.mkdirSync(dirPath, { recursive: true });
-        console.log(`Created directory: ${dirPath}`);
-      }
-
-      let sentMessages = {};
-      if (fs.existsSync(filePath)) {
-        try {
-          sentMessages = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-        } catch (e) {
-          console.warn('Could not parse existing sentMessages.json. Creating a new one.');
-        }
-      }
-
-      sentMessages[creatorEmail] = {
-        message: messageToSend,
-        type: type,
-        timestamp: new Date().toISOString()
-      };
-
-      fs.writeFileSync(filePath, JSON.stringify(sentMessages, null, 2));
-      console.log(`Saved sent message for ${creatorEmail}`);
+      // Save sent message safely to shared file
+      await writeSentMessageSafely({
+        creatorEmail,
+        messageToSend,
+        type,
+      });
 
       return messageToSend;
     }
@@ -228,7 +202,6 @@ async sendMassMessageFromData({ type, content, creatorEmail }) {
     throw error;
   }
 }
-
 
 // Paid Media Vault Messages
 async sendMassMediaVault({ type }) {
@@ -353,12 +326,12 @@ async sendMassMediaVault({ type }) {
         throw new Error(`Failed to set Pay-to-view price: ${error.message}`);
       }
 
-// Click on send button with checking send text in Dom
-const MAX_RETRIES = 3;
-let attempt = 0;
-let sendClicked = false;
+  // Click on send button with checking send text in Dom
+  const MAX_RETRIES = 3;
+  let attempt = 0;
+  let sendClicked = false;
 
-while (attempt < MAX_RETRIES && !sendClicked) {
+  while (attempt < MAX_RETRIES && !sendClicked) {
   try {
     attempt++;
     console.log(`Attempt ${attempt}: Locating correct Send button...`);
@@ -527,6 +500,7 @@ async getLastReceivedMsgFromCreator(expectedMessage, testId = 'UnknownTest') {
 
       await this.page.waitForTimeout(5000);
 
+      // Scroll chat container to bottom
       await this.page.evaluate(() => {
         const chatContainer = document.querySelector('div.bg-chat-receiver');
         if (chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight;
@@ -534,6 +508,7 @@ async getLastReceivedMsgFromCreator(expectedMessage, testId = 'UnknownTest') {
 
       await this.page.waitForTimeout(2000);
 
+      // Expand all messages to visible
       await this.page.evaluate(() => {
         const messages = Array.from(document.querySelectorAll('div.bg-chat-receiver div.px-2.pt-1'));
         messages.forEach(msg => {
@@ -556,7 +531,7 @@ async getLastReceivedMsgFromCreator(expectedMessage, testId = 'UnknownTest') {
         throw new Error('Last received message does not match expected.');
       }
 
-      // Highlight the matched message
+      // Highlight the matched message in UI
       const highlighted = await this.page.evaluate((expectedText) => {
         const normalize = (text) => text.replace(/\s+/g, ' ').trim().toLowerCase();
         const messages = Array.from(document.querySelectorAll('div.bg-chat-receiver div.px-2.pt-1'));
@@ -574,16 +549,16 @@ async getLastReceivedMsgFromCreator(expectedMessage, testId = 'UnknownTest') {
       }, expectedMessage);
 
       if (highlighted) {
-        console.log(`[${testId}] ✅ Message matched and highlighted`);
+        console.log(`[${testId}] Message matched and highlighted`);
       } else {
-        console.warn(`[${testId}] ⚠️ Message matched but not highlighted`);
+        console.warn(`[${testId}] Message matched but not highlighted`);
       }
 
       return rawText;
 
     } catch (err) {
       lastError = err;
-      console.warn(`[${testId}] ⚠️ Attempt ${attempt} failed: ${err.message}`);
+      console.warn(`[${testId}] Attempt ${attempt} failed: ${err.message}`);
 
       if (attempt < maxRetries) {
         await this.page.waitForTimeout(3000);
@@ -594,14 +569,12 @@ async getLastReceivedMsgFromCreator(expectedMessage, testId = 'UnknownTest') {
         const screenshotPath = path.join(screenshotDir, `msg_not_found_${testId}_${Date.now()}.png`);
         await this.page.screenshot({ path: screenshotPath, fullPage: true });
 
-        console.error(`[${testId}] ❌ Final attempt failed. Screenshot: ${screenshotPath}`);
+        console.error(`[${testId}] Final attempt failed. Screenshot: ${screenshotPath}`);
         throw new Error(`Failed to verify recent message after ${maxRetries} attempts.\nReason: ${lastError.message}`);
       }
     }
   }
 }
-
-
 
 async CreatorChat_MassMedia(fanEmail) {
   const fallbackEmail = 'rohan.kapse@iiclab.com';

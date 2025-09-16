@@ -25,36 +25,41 @@ function generateDynamicMessage() {
     "Big surprise coming!",
     "Hey I Like You",
     "I am coming live in some time !!!",
-    "I have share the story ! Just now Check It..."  
-  ];
+    "I have share the story ! Just now Check It...",
+    "Just dropped something special — go check it out!",
+    "Can’t wait to share what I’m working on!",
+    "You won’t want to miss this!",
+    "Live session coming up soon — be ready!",
+    "Quick update — exciting things ahead!",
+    "Thanks for all the love lately 💖",
+    "Behind-the-scenes sneak peek just posted!",
+    "You asked, I listened 👀",
+    "Dropping some 🔥 content later today!",
+    "Feeling grateful today — love you all!",
+    "Storytime incoming… stay close!",
+    "Guess what I’m planning next? 👀",
+    "Sending good vibes to everyone 💫",
+    "Going live to answer your DMs — tune in!",
+    "Poll just went up — go vote now!",
+    "Let’s make today awesome together!",
+    "Just updated my feed — thoughts?",
+    "Hey you 👋 I see your support. Thank you!",
+    "Dropping hints all day — catch them!",
+    "I’ve got a question for YOU… check stories!",
+    "Want early access? Stay tuned!",
+    "You're not ready for what’s coming 😎",
+    "If you’re seeing this… you're one of my favs 💌",
+    "New challenge posted — are you in?",
+    "Feeling cute today… might delete later 😉",
+    "This one's for my real ones 💯",
+    "Just posted — let me know what you think!",
+    "Up for a surprise collab?",
+    "Spoiler alert… it's BIG!",
+    "Today feels like a good day for something fun!"
+      ];
   const random = phrases[Math.floor(Math.random() * phrases.length)];
-  return `${random} [${Date.now()}]`; // Ensures uniqueness
+  return `${random}`; 
 }
-
-
-const messagesFilePath = path.resolve(__dirname, '../test-data/sentMessages.json');
-
-const waitForFileUpdate = async (creatorEmail, previousMessage = '', maxRetries = 20, delay = 3000) => {
-  if (!fs.existsSync(messagesFilePath)) {
-    console.log(`Creating missing file at ${messagesFilePath}`);
-    fs.writeFileSync(messagesFilePath, '{}', 'utf-8'); // create empty JSON object
-  }
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    const messages = JSON.parse(fs.readFileSync(messagesFilePath, 'utf-8'));
-    const current = messages[creatorEmail];
-
-    if (current?.message && current.message !== previousMessage) {
-      return current.message;
-    }
-
-    console.log(`[waitForFileUpdate] ⏳ Attempt ${attempt}: Message not updated yet, retrying...`);
-    await new Promise((resolve) => setTimeout(resolve, delay));
-  }
-
-  throw new Error(`Timed out waiting for updated message for ${creatorEmail}`);
-};
-
 
 
 function generateRandomMessage() {
