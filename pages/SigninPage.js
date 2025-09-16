@@ -7,8 +7,10 @@ class SigninPage {
     this.passwordInput = page.locator('[eid="SignIn/Password"]'); 
     this.signInBtn = page.locator('[data-eid="SignIn/SignIn_btn"]');
 
+
     this.ageConfirmBtn = page.locator('#age-wraning-close-button'); // Age confirmation modal button
     this.modal = page.locator('#signUpModal'); // Not currently used, but fine to keep
+    
   }
 
   async goToSignin() {
@@ -32,6 +34,7 @@ class SigninPage {
     await this.signInBtn.click();
     console.log('Submitted sign-in form.');
   }
+  
 }
 
 module.exports = { SigninPage };

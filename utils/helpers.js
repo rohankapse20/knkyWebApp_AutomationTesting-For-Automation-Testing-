@@ -155,19 +155,21 @@ async function fillInput(page, selector, value) {
   console.log(`Filled input ${selector} with value "${value}"`);
 }
 
-// Highlight an element on the page
-async function highlightElement(page, selector) {
-  await page.evaluate((sel) => {
-    const el = document.querySelector(sel);
-    if (el) {
-      el.style.outline = '3px solid red';
-      el.style.transition = 'outline 0.3s ease-in-out';
-      setTimeout(() => {
-        el.style.outline = '';
-      }, 1000);
-    }
-  }, selector);
-  console.log(`Highlighted element: ${selector}`);
+// const chalk = require('chalk');
+
+const chalk = require('chalk').default;
+
+function highlightMessage(message, type = 'info') {
+  switch (type) {
+    case 'success':
+      console.log(chalk.green(`${message}`));
+      break;
+    case 'warning':
+      console.log(chalk.yellow(` ${message}`));
+      break;
+    default:
+      console.log(message);
+  }
 }
 
 
@@ -481,7 +483,6 @@ async function retry(fn, retries = 3, delay = 10000) {
 // Export all helpers
 module.exports = {
   fillInput,
-  highlightElement,
   takeScreenshot,
   selectDropdown,
   uploadFile,
@@ -505,5 +506,6 @@ module.exports = {
   scrollDownPage,
   scrollPageUp,
   scrollElementUp,
-  generateDynamicMessage
+  generateDynamicMessage,
+  highlightMessage
 };
