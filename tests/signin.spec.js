@@ -1,8 +1,8 @@
 require('dotenv').config({ path: './.env' });
 const { test, expect } = require('@playwright/test');
-const { getTestData } = require('../utils/readExcel');
-const { BasePage } = require('../pages/BasePage');
-const { SigninPage } = require('../pages/SigninPage');
+const { getTestData } = require('../../utils/readExcel');
+const { BasePage } = require('../../pages/BasePage');
+const { SigninPage } = require('../../pages/SigninPage');
 
 const signinData = getTestData('./data/testData.xlsx', 'signin_data');
 

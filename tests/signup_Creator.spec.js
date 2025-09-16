@@ -5,7 +5,7 @@ const { BasePage } = require('../pages/BasePage');
 const { SignupPage } = require('../pages/SignupPage');
 
 const baseURL = process.env.BASE_URL;
-const signupData = getTestData('./data/testData.xlsx', 'signup_data');
+const signupData = getTestData('./data/testData.xlsx', 'signupCreator_data');
 
 test.use({
   viewport: { width: 1400, height: 700 },
@@ -13,12 +13,15 @@ test.use({
 
 test.describe('Signup Tests', () => {
   signupData.forEach(({ email, password, isValid }, index) => {
-    test(`Signup for Fan User #${index + 1} - email: "${email}"`, async ({ page }) => {
+    test(`Signup for Creator #${index + 1} - email: "${email}"`, async ({ page }) => {
       const base = new BasePage(page, baseURL);
       const signup = new SignupPage(page);
 
       await base.navigate();
       await signup.goToSignup();
+
+     // Select the UserType
+     await signup.selctUserType();
 
       // Clear fields before filling
       await signup.emailField.fill('');

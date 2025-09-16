@@ -21,9 +21,19 @@ class SignupPage {
     this.passwordUpperError = page.locator('div.error[data-sentry-element="ErrorMessage"]', { hasText: 'Password must contain at least one uppercase character' });
     this.createAccountButton = page.locator('button[data-eid="SignUp/Create_account_button"]');
     this.emailAlreadyUsedPopup = page.locator('.swal2-popup.swal2-error h2#swal2-title', { hasText: 'Email already in use' });
+
+    this.creatorOption = page.locator('div.userTypeSelectionBox[data-eid="SignUp/UserType_creator"]');
+
   }
 
-  // Created methods()
+// Created methods()
+
+async selctUserType() {
+  console.log('Selecting the User Type for Signup...');
+  await this.creatorOption.waitFor({ state: 'visible', timeout: 10000 });
+  await this.creatorOption.click();
+}
+
 
   async goToSignup() {
     console.log('Waiting for signup button...');
