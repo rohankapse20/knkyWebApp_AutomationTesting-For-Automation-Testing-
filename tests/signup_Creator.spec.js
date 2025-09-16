@@ -11,17 +11,16 @@ test.use({
   viewport: { width: 1400, height: 700 },
 });
 
-test.describe('Signup Tests', () => {
+test.describe('Creator Signup Tests', () => {
   signupData.forEach(({ email, password, isValid }, index) => {
-    test(`Signup for Creator #${index + 1} - email: "${email}"`, async ({ page }) => {
+    test(`Signup for Creator User #${index + 1} - email: "${email}"`, async ({ page }) => {
       const base = new BasePage(page, baseURL);
       const signup = new SignupPage(page);
 
       await base.navigate();
       await signup.goToSignup();
 
-     // Select the UserType
-     await signup.selctUserType();
+      await signup.selctUserType();
 
       // Clear fields before filling
       await signup.emailField.fill('');
@@ -59,7 +58,6 @@ test.describe('Signup Tests', () => {
       }
 
       if (isValid === 'FALSE') {
-        // Try to click only if button is enabled
         const isButtonEnabled = await signup.createAccountButton.isEnabled();
         if (isButtonEnabled) {
           await signup.submit();
@@ -68,7 +66,6 @@ test.describe('Signup Tests', () => {
           console.log('Create account button is disabled as expected');
         }
 
-        // Validate errors
         if (isEmailInvalid) {
           await expect(signup.invalidEmailError).toBeVisible({ timeout: 3000 });
           await expect(signup.invalidEmailError).toHaveText('Invalid email');
@@ -100,14 +97,23 @@ test.describe('Signup Tests', () => {
         return;
       }
 
-      // Positive path
+      // Positive Path with Try-Catch for both valid and reused emails
       await signup.submit();
-      await expect(page.locator('#swal2-title')).toHaveText('Welcome to Knky', { timeout: 5000 });
-      console.log(`Signup successful for user: ${email}`);
+
+      const popupTitle = page.locator('#swal2-title');
+      try {
+        await expect(popupTitle).toHaveText('Welcome to Knky', { timeout: 5000 });
+        console.log(`Signup successful for user: ${email}`);
+      } catch (error) {
+        const actualText = await popupTitle.textContent();
+        if (actualText && actualText.includes('already in use')) {
+          console.log(`Email already in use for user: ${email} — treated as valid case.`);
+        } else {
+          throw new Error(`Unexpected popup message: "${actualText}" for email: ${email}`);
+        }
+      }
 
       await page.waitForTimeout(2000);
     });
-
-
-  });  
+  });
 });

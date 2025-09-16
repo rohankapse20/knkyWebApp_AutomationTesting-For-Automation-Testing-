@@ -101,7 +101,7 @@ test.describe.parallel('Mass Message Send and Fan Verification Tests', () => {
       } catch (error) {
         await handleError(page, index, 'Creator Mass Message Test', error);
       } finally {
-        await page.waitForTimeout(20000); 
+        
         await page.close();
         await context.close();
       }

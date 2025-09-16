@@ -28,13 +28,6 @@ class SignupPage {
 
 // Created methods()
 
-async selctUserType() {
-  console.log('Selecting the User Type for Signup...');
-  await this.creatorOption.waitFor({ state: 'visible', timeout: 10000 });
-  await this.creatorOption.click();
-}
-
-
   async goToSignup() {
     console.log('Waiting for signup button...');
     await this.signupBtn.waitFor({ state: 'visible', timeout: 10000 });
@@ -50,6 +43,14 @@ async selctUserType() {
     await this.emailField.waitFor({ state: 'visible', timeout: 10000 });
     console.log('Email field is visible.');
   }
+
+async selctUserType() {
+  console.log('Selecting the User Type for Signup...');
+  await this.creatorOption.waitFor({ state: 'visible', timeout: 10000 });
+  await this.creatorOption.click();
+}
+
+
 
   async fillSignupForm(email, password) {
     await this.emailField.fill(email);
