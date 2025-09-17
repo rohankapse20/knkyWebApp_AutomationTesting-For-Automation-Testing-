@@ -6,8 +6,13 @@ const { BasePage } = require('../pages/BasePage');
 const { SigninPage } = require('../pages/SigninPage');
 const { ChatPage } = require('../pages/ChatPage');
 const {takeScreenshot} = require('../utils/helpers')
+const {handleError} = require('../utils/helpers')
 
 require('dotenv').config({ path: './.env' });
+
+// Data from Excel
+const chatData = getTestData('./data/testData.xlsx', 'massMsgSend_Data');
+const fanData = getTestData('./data/testData.xlsx', 'users_LoginData');
 
 // Ensure environment variables are loaded
 const BASE_URL = process.env.BASE_URL;
@@ -16,29 +21,12 @@ if (!BASE_URL || !CREATOR_EMAIL) {
   throw new Error("Missing required environment variables: BASE_URL or CREATOR_EMAIL");
 }
 
-// Data from Excel
-const chatData = getTestData('./data/testData.xlsx', 'massMsgSend_Data');
-const fanData = getTestData('./data/testData.xlsx', 'users_LoginData');
-
 // Playwright setup
 test.use({ viewport: { width: 780, height: 700 } });
 test.setTimeout(12000); // Increase timeout for slow tests
 
-// Helper function to handle error logging and screenshot
-async function handleError(page, index, step, error) {
-  console.error(`${step} failed: ${error.message}`);
-  // Capture a screenshot in case of an error
-  if (!page.isClosed()) {
-    const screenshotPath = `error_${step.toLowerCase().replace(/\s+/g, '_')}_${index + 1}.png`;
-    await page.screenshot({ path: screenshotPath });
-    console.log(`Screenshot saved: ${screenshotPath}`);
-  }
-  throw error; // Rethrow the error to mark the test as failed
-}
-
 // Parallel Test
 test.describe.parallel('Mass Vault Media Tests', () => {
-
 // Test for Mass Vault Media Sending for Free to Fans
 chatData.forEach((dataRow, index) => {
   test(`Mass Vault Media Send test #${index + 1} - ${dataRow.CreatorEmail}`, async ({ page }) => {

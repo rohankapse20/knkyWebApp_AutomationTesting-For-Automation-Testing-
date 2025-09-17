@@ -173,6 +173,17 @@ function highlightMessage(message, type = 'info') {
   }
 }
 
+// Error Handler
+async function handleError(page, index, step, error) {
+  console.error(`${step} failed: ${error.message}`);
+  if (!page.isClosed()) {
+    const screenshotPath = `error_${step.toLowerCase().replace(/\s+/g, '_')}_${index + 1}.png`;
+    await page.screenshot({ path: screenshotPath });
+    console.log(`Screenshot saved: ${screenshotPath}`);
+  }
+  throw error;
+}
+
 
 export function generateCredentials() {
   // Generate valid email & password
@@ -550,6 +561,7 @@ module.exports = {
   scrollElementUp,
   generateDynamicMessage,
   highlightMessage,
-  generateCredentials
+  generateCredentials,
+  handleError
   
 };

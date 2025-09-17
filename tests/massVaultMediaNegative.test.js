@@ -4,6 +4,8 @@ const { BasePage } = require('../pages/BasePage');
 const { SigninPage } = require('../pages/SigninPage');
 const { massVaultMediaNegativeTest_PO } = require('../pages/massVaultMediaNegativeTest_PO');
 const {takeScreenshot} = require('../utils/helpers')
+const {handleError} = require('../utils/helpers')
+const chatData = getTestData('./data/testData.xlsx', 'massMsgSend_Data');
 
 require('dotenv').config({ path: './.env' });
 
@@ -14,23 +16,11 @@ if (!BASE_URL || !CREATOR_EMAIL) {
   throw new Error("Missing required environment variables: BASE_URL or CREATOR_EMAIL");
 }
 
-const chatData = getTestData('./data/testData.xlsx', 'massMsgSend_Data');
 
 test.use({ viewport: { width: 1500, height: 700 } });
 // test.setTimeout(12000);
 
-async function handleError(page, index, step, error) {
-  console.error(`${step} failed: ${error.message}`);
-  if (!page.isClosed()) {
-    const screenshotPath = `error_${step.toLowerCase().replace(/\s+/g, '_')}_${index + 1}.png`;
-    await page.screenshot({ path: screenshotPath });
-    console.log(`Screenshot saved: ${screenshotPath}`);
-  }
-  throw error;
-}
-
 test.describe('Negative Test for vault media feature', () => {
-
 // Creator tries to send without selecting vault file
   chatData.forEach((dataRow, index) => {
     test(`Creator tries to send without selecting vault file #${index + 1} - ${dataRow.CreatorEmail}`, async ({ page }) => {

@@ -8,6 +8,11 @@ const { BasePage } = require('../pages/BasePage');
 const { SigninPage } = require('../pages/SigninPage');
 const { ChatPage } = require('../pages/ChatPage');
 const {takeScreenshot} = require('../utils/helpers')
+const {handleError} = require('../utils/helpers')
+
+// Excel Test Data
+const chatData = getTestData('./data/testData.xlsx', 'massMsgSend_Data');
+const fanData = getTestData('./data/testData.xlsx', 'users_LoginData');
 
 require('dotenv').config({ path: './.env' });
 
@@ -18,28 +23,12 @@ if (!BASE_URL || !CREATOR_EMAIL) {
   throw new Error("Missing required environment variables: BASE_URL or CREATOR_EMAIL");
 }
 
-// Excel Test Data
-const chatData = getTestData('./data/testData.xlsx', 'massMsgSend_Data');
-const fanData = getTestData('./data/testData.xlsx', 'users_LoginData');
-
 // Test Settings
 test.use({ viewport: { width: 770, height: 700 } });
 test.setTimeout(60000);
 
-// Error Handler
-async function handleError(page, index, step, error) {
-  console.error(`${step} failed: ${error.message}`);
-  if (!page.isClosed()) {
-    const screenshotPath = `error_${step.toLowerCase().replace(/\s+/g, '_')}_${index + 1}.png`;
-    await page.screenshot({ path: screenshotPath });
-    console.log(`Screenshot saved: ${screenshotPath}`);
-  }
-  throw error;
-}
-
 // Parallel Tests
 test.describe.parallel('Mass Message Send and Fan Verification Tests', () => {
-
   chatData.forEach((dataRow,index) => {
     test(`Creator Mass Message Send Test #${index + 1} - ${dataRow.CreatorEmail}`, async ({ browser }) => {
       const context = await browser.newContext();
