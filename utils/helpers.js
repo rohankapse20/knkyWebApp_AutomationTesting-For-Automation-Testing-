@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+import { faker } from '@faker-js/faker';
 
 
 // Generate a random phrase from predefined options
@@ -171,6 +172,47 @@ function highlightMessage(message, type = 'info') {
       console.log(message);
   }
 }
+
+
+export function generateCredentials() {
+  // Generate valid email & password
+  const validEmail = faker.internet.email();
+  const validPassword = faker.internet.password(10); // min 10 chars
+
+  // Generate invalid email examples
+  const invalidEmails = [
+    'plainaddress',
+    '@missingusername.com',
+    'user@.com',
+    'user@domain',
+    'user@domain..com',
+    faker.lorem.word()  // totally invalid
+  ];
+
+  // Generate invalid passwords
+  const invalidPasswords = [
+    '123',             // too short
+    'password',        // too weak
+    '',                // empty
+    '      ',          // spaces only
+    faker.lorem.word() // simple word
+  ];
+
+  const invalidEmail = faker.helpers.arrayElement(invalidEmails);
+  const invalidPassword = faker.helpers.arrayElement(invalidPasswords);
+
+  return {
+    valid: {
+      email: validEmail,
+      password: validPassword,
+    },
+    invalid: {
+      email: invalidEmail,
+      password: invalidPassword,
+    },
+  };
+}
+
 
 
 // Capture screenshot with timestamped filename
@@ -507,5 +549,7 @@ module.exports = {
   scrollPageUp,
   scrollElementUp,
   generateDynamicMessage,
-  highlightMessage
+  highlightMessage,
+  generateCredentials
+  
 };

@@ -42,12 +42,13 @@ jobs:
           echo "USER3_EMAIL=${{ secrets.USER3_EMAIL }}" >> .env
           echo "USER3_PASSWORD=${{ secrets.USER3_PASSWORD }}" >> .env
 
-      - name: 🧪 Run Sign Up tests only
+      - name: 🧪 Run Sign Up tests for Creator and Fan Users
         env:
           CI: true
         run: |
           npm run clean
-          npx playwright test signup.spec.js
+          npx playwright test signup_Creator.spec.js
+          
 
       - name: 📊 Generate Allure Report
         run: |
