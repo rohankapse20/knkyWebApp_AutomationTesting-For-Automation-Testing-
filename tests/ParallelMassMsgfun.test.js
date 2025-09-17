@@ -6,12 +6,20 @@ const { getTestData } = require('../utils/readExcel');
 const { BasePage } = require('../pages/BasePage');
 const { SigninPage } = require('../pages/SigninPage');
 const { ParallelMassMsgfun_PO } = require('../pages/ParallelMassMsgfun_PO');
+
 const { takeScreenshot } = require('../utils/helpers');
 const { generateDynamicMessage } = require('../utils/helpers');
+const { handleError } = require('../utils/helpers');
 
+// Excel Test Data
+const chatData = getTestData('./data/testData.xlsx', 'massMsgSend_Data');
+const fanData = getTestData('./data/testData.xlsx', 'users_LoginData');
+// Shared file path (must match your writeSentMessageSafely directory)
+const messagesFilePath = path.resolve(__dirname, '../../shared-test-data/sentMessages.json');
 
 require('dotenv').config({ path: './.env' });
 const { waitForFileUpdate } = require('../utils/fileUtils');
+
 
 // Environment Validation
 const BASE_URL = process.env.BASE_URL;
@@ -20,27 +28,9 @@ if (!BASE_URL || !CREATOR_EMAIL) {
   throw new Error("Missing required environment variables: BASE_URL or CREATOR_EMAIL");
 }
 
-// Excel Test Data
-const chatData = getTestData('./data/testData.xlsx', 'massMsgSend_Data');
-const fanData = getTestData('./data/testData.xlsx', 'users_LoginData');
-
-// Shared file path (must match your writeSentMessageSafely directory)
-const messagesFilePath = path.resolve(__dirname, '../../shared-test-data/sentMessages.json');
-
 // Test Settings
 test.use({ viewport: { width: 770, height: 700 } });
 test.setTimeout(60000);
-
-// Error Handler
-async function handleError(page, index, step, error) {
-  console.error(`${step} failed: ${error.message}`);
-  if (!page.isClosed()) {
-    const screenshotPath = `error_${step.toLowerCase().replace(/\s+/g, '_')}_${index + 1}.png`;
-    await page.screenshot({ path: screenshotPath });
-    console.log(`Screenshot saved: ${screenshotPath}`);
-  }
-  throw error;
-}
 
 // Parallel Tests
 test.describe.parallel('Mass Message Send and Fan Verification Tests', () => {
