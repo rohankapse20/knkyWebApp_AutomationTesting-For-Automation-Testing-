@@ -28,7 +28,7 @@ if (!BASE_URL || !CREATOR_EMAIL) {
   throw new Error("Missing required environment variables: BASE_URL or CREATOR_EMAIL");
 }
 
-// Test Settings
+// Set the Screensize and test time
 test.use({ viewport: { width: 770, height: 700 } });
 test.setTimeout(60000);
 
