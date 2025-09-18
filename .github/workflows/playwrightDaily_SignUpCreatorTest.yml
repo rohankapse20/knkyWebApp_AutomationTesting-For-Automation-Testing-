@@ -1,4 +1,4 @@
-name: Playwright Sign Up Tests with Allure Reports
+name: Playwright Creator Sign Up Tests with Allure Reports
 
 on:
   schedule:
