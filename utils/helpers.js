@@ -156,22 +156,6 @@ async function fillInput(page, selector, value) {
   console.log(`Filled input ${selector} with value "${value}"`);
 }
 
-// const chalk = require('chalk');
-
-const chalk = require('chalk').default;
-
-function highlightMessage(message, type = 'info') {
-  switch (type) {
-    case 'success':
-      console.log(chalk.green(`${message}`));
-      break;
-    case 'warning':
-      console.log(chalk.yellow(` ${message}`));
-      break;
-    default:
-      console.log(message);
-  }
-}
 
 // Error Handler
 async function handleError(page, index, step, error) {
