@@ -30,7 +30,7 @@ if (!BASE_URL || !CREATOR_EMAIL) {
 // Set the Screensize and test time
 test.use({ viewport: { width: 770, height: 700 } });
 test.setTimeout(60000);
-
+  
 // Parallel Tests
 test.describe.parallel('Neagative Test for Mass Message ', () => {
   chatData.forEach((dataRow, index) => {
