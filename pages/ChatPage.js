@@ -5,7 +5,6 @@ const { safeClick } = require('../utils/helpers.js');
 
 // const { generateRandomMessage } = require('../utils/helpers.js');
 
-
 class ChatPage {
   constructor(page) {
     this.page = page;
@@ -194,6 +193,7 @@ async sendMassMessageFromData({ type, content }) {
   } catch (error) {
     console.error('Failed to send message:', error);
     throw error;
+    
   }
 }
 
@@ -833,5 +833,6 @@ async waitForSuccessPopup() {
   }
 
 }
+
 
 module.exports = { ChatPage };

@@ -20,7 +20,6 @@ const messagesFilePath = path.resolve(__dirname, '../../shared-test-data/sentMes
 require('dotenv').config({ path: './.env' });
 const { waitForFileUpdate } = require('../utils/fileUtils');
 
-
 // Environment Validation
 const BASE_URL = process.env.BASE_URL;
 const CREATOR_EMAIL = process.env.CREATOR_EMAIL;

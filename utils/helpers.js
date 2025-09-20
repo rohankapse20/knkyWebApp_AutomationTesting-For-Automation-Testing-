@@ -544,8 +544,6 @@ module.exports = {
   scrollPageUp,
   scrollElementUp,
   generateDynamicMessage,
-  highlightMessage,
   generateCredentials,
-  handleError
-  
+  handleError  
 };
