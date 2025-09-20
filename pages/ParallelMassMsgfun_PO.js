@@ -10,6 +10,8 @@ class ParallelMassMsgfun_PO {
 
     // Define the locators
     
+    this.welcomePopup = page.locator('text=Welcome Back,');
+
     this.getStartedMassChat = page.locator("//button[normalize-space(text())='Get Started']");
     this.messageText = page.locator("//textarea[@placeholder='Type your message here']");
     this.mediaRadio = page.locator("//input[@type='radio' and @value='Media']");

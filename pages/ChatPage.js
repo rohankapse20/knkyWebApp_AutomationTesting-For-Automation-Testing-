@@ -193,6 +193,7 @@ async sendMassMessageFromData({ type, content }) {
   } catch (error) {
     console.error('Failed to send message:', error);
     throw error;
+    
   }
 }
 
