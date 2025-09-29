@@ -5,6 +5,7 @@ class SignupPage {
     // Define the Locators
     this.signupBtn = page.locator('[data-eid="Home_WithoutLoggedIn/Signin_btn"]');
     this.signuplink = page.locator('[data-eid="SignIn/Signup_link"]');
+    this.username = page.locator('//input[@placeholder="Enter username" and @type="text" and @min="4"]');
     this.emailField = page.locator('[data-eid="SignUp/Email"]');
     this.passwordField = page.locator('[data-eid="SignUp/Password"]');
     this.ageCheckbox = page.locator('[data-eid="SignUp/Age_confirmation"]');
@@ -12,7 +13,7 @@ class SignupPage {
 
     // Modal button (age confirmation)
     this.ageConfirmBtn = page.locator('#age-wraning-close-button');
-    this.modal = page.locator('#signUpModal');
+    this.modal = page.locator('#signUpModal');  
 
     // Error message locators
     this.emailError = page.locator('div.error[data-sentry-element="ErrorMessage"]', { hasText: 'Email' });
@@ -23,10 +24,7 @@ class SignupPage {
     this.emailAlreadyUsedPopup = page.locator('.swal2-popup.swal2-error h2#swal2-title', { hasText: 'Email already in use' });
 
     this.creatorOption = page.locator('div.userTypeSelectionBox[data-eid="SignUp/UserType_creator"]');
-
   }
-
-// Created methods()
 
   async goToSignup() {
     console.log('Waiting for signup button...');
@@ -44,18 +42,33 @@ class SignupPage {
     console.log('Email field is visible.');
   }
 
-async selctUserType() {
-  console.log('Selecting the User Type for Signup...');
-  await this.creatorOption.waitFor({ state: 'visible', timeout: 10000 });
-  await this.creatorOption.click();
-}
+  async selctUserType() {
+    console.log('Selecting the User Type for Signup...');
+    await this.creatorOption.waitFor({ state: 'visible', timeout: 10000 });
+    await this.creatorOption.click();
+  }
 
+  async fillSignupForm(username, email, password) {
+    // Fill username if provided
+    if (username !== undefined && username !== null) {
+      await this.username.waitFor({ state: 'visible', timeout: 5000 });
+      await this.username.fill(username);
+      console.log('Filled username.');
+    }
 
+    // Fill email if provided
+    if (email !== undefined && email !== null) {
+      await this.emailField.waitFor({ state: 'visible', timeout: 5000 });
+      await this.emailField.fill(email);
+      console.log('Filled email.');
+    }
 
-  async fillSignupForm(email, password) {
-    await this.emailField.fill(email);
-    await this.passwordField.fill(password);
-    console.log('Filled email and password.');
+    // Fill password if provided
+    if (password !== undefined && password !== null) {
+      await this.passwordField.waitFor({ state: 'visible', timeout: 5000 });
+      await this.passwordField.fill(password);
+      console.log('Filled password.');
+    }
   }
 
   async selectAgeConfm() {
