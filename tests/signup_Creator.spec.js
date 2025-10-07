@@ -1,7 +1,7 @@
 require('dotenv').config({ path: './.env' });
 const { test, expect } = require('@playwright/test');
 const { getTestData } = require('../utils/readExcel');
-const { BasePage } = require('../pages/BasePage');
+const { BasePage } = require('../pages/BasePage');  
 const { SignupPage } = require('../pages/SignupPage');
 
 const baseURL = process.env.BASE_URL;
@@ -12,34 +12,34 @@ test.use({
 });
 
 test.describe('Creator Signup Tests', () => {
-  signupData.forEach(({ email, password, isValid }, index) => {
+  signupData.forEach(({ username, email, password, isValid }, index) => {
     test(`Signup for Creator User #${index + 1} - email: "${email}"`, async ({ page }) => {
       const base = new BasePage(page, baseURL);
       const signup = new SignupPage(page);
 
       await base.navigate();
       await signup.goToSignup();
-
       await signup.selctUserType();
 
-      // Clear fields before filling
-      await signup.emailField.fill('');
-      await signup.passwordField.fill('');
-
-      // Fill only if present
-      if (email !== undefined) await signup.emailField.fill(email);
-      if (password !== undefined) await signup.passwordField.fill(password);
-
+      await signup.fillSignupForm(username, email, password);
       await signup.selectAgeConfm();
 
+      const isUsernameEmpty = !username || username.trim() === '';
       const isEmailEmpty = !email || email.trim() === '';
       const isPasswordEmpty = !password || password.trim() === '';
       const isPasswordWeak = password && password === password.toLowerCase();
       const isEmailInvalid = email && (!email.includes('@') || !email.includes('.'));
 
-      if (isEmailEmpty || isPasswordEmpty) {
+      if (isUsernameEmpty || isEmailEmpty || isPasswordEmpty) {
         console.log('Checking for required field errors...');
+
         await expect(signup.createAccountButton).toBeDisabled();
+
+        if (isUsernameEmpty) {
+          await expect(signup.usernameError).toBeVisible({ timeout: 3000 });
+          await expect(signup.usernameError).toHaveText('Username is required');
+          console.log('Username required error shown');
+        }
 
         if (isEmailEmpty) {
           await expect(signup.emailError).toBeVisible({ timeout: 3000 });
@@ -80,7 +80,7 @@ test.describe('Creator Signup Tests', () => {
 
         const reusedEmails = [
           'rohan.kapse.iic.0148+RockHeroNoOne@gmail.com',
-          'rohan.kapse.iic.0148+RockHeroNotwo@gmail.com'
+          'rohan.kapse.iic.0148+RockHeroNotwo@gmail.com',
         ];
 
         if (reusedEmails.includes(email)) {
@@ -97,7 +97,7 @@ test.describe('Creator Signup Tests', () => {
         return;
       }
 
-      // Positive Path with Try-Catch for both valid and reused emails
+      // === POSITIVE PATH ===
       await signup.submit();
 
       const popupTitle = page.locator('#swal2-title');
@@ -114,6 +114,7 @@ test.describe('Creator Signup Tests', () => {
       }
 
       await page.waitForTimeout(2000);
+      
     });
   });
 });
