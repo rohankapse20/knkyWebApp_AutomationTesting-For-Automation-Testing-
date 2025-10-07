@@ -1,7 +1,7 @@
 require('dotenv').config({ path: './.env' });
 const { test, expect } = require('@playwright/test');
 const { getTestData } = require('../utils/readExcel');
-const { BasePage } = require('../pages/BasePage');
+const { BasePage } = require('../pages/BasePage');  
 const { SignupPage } = require('../pages/SignupPage');
 
 const baseURL = process.env.BASE_URL;

@@ -45,7 +45,7 @@ test.describe.parallel('Mass Message Send and Fan Verification Tests', () => {
         await signin.signinSubmit();
         await chat.handleOtpVerification();
 
-        const welcomePopup = page.locator('text=Welcome Back, PlayfulMistress');
+        const welcomePopup = page.locator('text=Welcome Back, PlayfulMistressgw');
         await expect(welcomePopup).toBeVisible({ timeout: 20000 });
         console.log(`Logged in as Creator: ${dataRow.CreatorEmail}`);
 

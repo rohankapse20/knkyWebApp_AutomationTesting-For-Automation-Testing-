@@ -57,7 +57,7 @@ async navigateToChat() {
 }
 
 async chatWithCreator(retryCount = 0) {
-  const creatorName = 'PlayfulMistress';
+  const creatorName = 'PlayfulMistressgw';
   const MAX_RETRIES = 3;
 
   const searchInput = this.page.locator('#chat-search-box input[type="search"]');
