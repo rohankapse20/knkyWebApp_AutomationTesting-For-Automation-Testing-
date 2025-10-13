@@ -78,7 +78,6 @@ try {
     type: messageType,
     // content property removed entirely
   });
-
   await page.waitForTimeout(1500); // Small buffer wait
   console.log('Mass message content sent.');
 } catch (error) {
@@ -182,18 +181,18 @@ fanData.forEach((fan, index) => {
       throw new Error(`Vault media not verified for fan: ${fan.FanEmail}`);
     }
 
-   // Step 5: Confirm success message and close modal (optional UX steps)
-try {
-  const confirmationText = this.page.locator('text=/message.*unlocked/i');
+  // Step 5: Confirm success message and close modal (optional UX steps)
+  try {
+    const confirmationText = this.page.locator('text=/message.*unlocked/i');
 
-  // NEW: Wait briefly for modal to appear in fast transitions
-  await this.page.waitForTimeout(300);
+    // NEW: Wait briefly for modal to appear in fast transitions
+    await this.page.waitForTimeout(300);
 
-  await confirmationText.waitFor({ state: 'visible', timeout: 7000 });
-  console.log('Success message confirmed.');
+    await confirmationText.waitFor({ state: 'visible', timeout: 7000 });
+    console.log('Success message confirmed.');
 
-  // NEW: Handle quick "Got it!" appearance
-  const gotItBtn = this.page.locator('button.swal2-confirm.swal2-styled:has-text("Got it!")');
+    // NEW: Handle quick "Got it!" appearance
+    const gotItBtn = this.page.locator('button.swal2-confirm.swal2-styled:has-text("Got it!")');
   try {
     if (await gotItBtn.isVisible({ timeout: 1000 })) {
       await gotItBtn.click();
@@ -203,7 +202,7 @@ try {
     console.warn('"Got it!" button not clicked (optional).');
   }
 
-  const finalCloseBtn = page.locator('button:has-text("Close"), button.swal2-close');
+    const finalCloseBtn = page.locator('button:has-text("Close"), button.swal2-close');
   if (await finalCloseBtn.isVisible()) {
     await finalCloseBtn.click();
     console.log('Final modal closed.');
@@ -222,6 +221,7 @@ try {
     throw new Error(`Fan Flow Failed for ${fan.FanEmail}. Screenshot: ${path}`);
     }
 
-});
+   });
+
 });
 });
