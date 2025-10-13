@@ -10,7 +10,6 @@ class ChatPage {
     this.page = page;
 
     // Define the locators
-    
     this.getStartedMassChat = page.locator("//button[normalize-space(text())='Get Started']");
     this.messageText = page.locator("//textarea[@placeholder='Type your message here']");
     this.mediaRadio = page.locator("//input[@type='radio' and @value='Media']");
@@ -26,7 +25,6 @@ class ChatPage {
   }
 
 // Created the methods
-
 async navigateToChat() {
   try {
     if (await this.testVersAccept.isVisible({ timeout: 30000 })) {
@@ -57,7 +55,7 @@ async navigateToChat() {
 }
 
 async chatWithCreator(retryCount = 0) {
-  const creatorName = 'PlayfulMistressgw';      
+  const creatorName = 'PlayfulMistress';      
   const MAX_RETRIES = 3;
 
   const searchInput = this.page.locator('#chat-search-box input[type="search"]');
